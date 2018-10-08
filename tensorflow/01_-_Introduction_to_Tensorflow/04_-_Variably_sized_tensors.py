@@ -6,7 +6,6 @@ with g.as_default():
     b = tf.placeholder(tf.float32, [None, 2], 'b')
 
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         [ result ] = s.run([ a ], { a: [1.0] })

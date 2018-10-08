@@ -15,21 +15,21 @@ with g.as_default():
     init = tf.global_variables_initializer()
 
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         s.run([ init ], { })
         inputs = [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
         results = [ s.run([ y ], { x: i })[0] for i in inputs ]
 
-        plt.figure(1) #Optional: Figure ID
-        plt.subplot(1, 1, 1) #Optional: Subplots rows, subplots columns, subplot position
-        plt.title('Polynomial') #Optional: Set the title for the subplot
-        plt.plot(inputs, results, linestyle='-', color='red', linewidth=3) #Plot the points in (inputs, results)
-        plt.xlim(-2.0, 2.0) #Optional: Set the range for the x-axis
-        plt.xlabel('x') #Optional: Set the label for the x-axis
-        plt.ylim(-10.0, 10.0) #Optional: Set the range for the y-axis
-        plt.ylabel('y') #Optional: Set the label for the y-axis
-        plt.grid(True) #Optional: Show a grid
+        (fig, ax) = plt.subplots(1, 1) #Set the figure with the number of rows and columns of subplots (using more than one subplot will make 'ax' a list of each subplot's axis)
+        ax.cla() #Optional: Clear the subplot
+        ax.plot(inputs, results, color='red', linestyle='-', linewidth=3) #Plot the points in (inputs, results)
+        ax.set_title('Polynomial') #Optional: Set the title for the subplot
+        ax.set_xlim(-2.0, 2.0) #Optional: Set the range for the x-axis
+        ax.set_xlabel('x') #Optional: Set the label for the x-axis
+        ax.set_ylim(-10.0, 10.0) #Optional: Set the range for the y-axis
+        ax.set_ylabel('y') #Optional: Set the label for the y-axis
+        ax.grid(True) #Optional: Show a grid
+        fig.tight_layout() #Optional: Make everything visible
 
-        plt.show()
+        plt.show() #Show the figure

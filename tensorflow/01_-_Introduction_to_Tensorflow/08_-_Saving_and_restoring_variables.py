@@ -11,7 +11,6 @@ with g.as_default():
     saver = tf.train.Saver()
 
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         s.run([ v_setter ], { v_in: 1.0 })

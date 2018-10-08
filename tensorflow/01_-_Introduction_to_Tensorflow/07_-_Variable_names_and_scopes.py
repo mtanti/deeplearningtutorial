@@ -11,7 +11,6 @@ with g.as_default():
     init = tf.global_variables_initializer()
     
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         s.run([ init ], {  })

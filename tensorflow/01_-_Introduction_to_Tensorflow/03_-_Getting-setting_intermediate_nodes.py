@@ -9,7 +9,6 @@ with g.as_default():
     d = 2*c
 
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         [ result ] = s.run([ c ], { b: [1.0, 2.0, 3.0] })

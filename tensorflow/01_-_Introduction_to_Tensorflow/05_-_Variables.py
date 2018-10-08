@@ -8,7 +8,6 @@ with g.as_default():
     v_setter = tf.assign(v, v_in) #Run this to set v to v_in
     
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         s.run([ v_setter ], { v_in: 1.0 })

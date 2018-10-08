@@ -18,7 +18,6 @@ with g.as_default():
     init = tf.global_variables_initializer()
 
     g.finalize()
-    tf.summary.FileWriter('.', g)
 
     with tf.Session() as s:
         s.run([ init ], { })
@@ -26,21 +25,21 @@ with g.as_default():
         results_y = [ s.run([ y ], { x: i })[0] for i in inputs ]
         results_g = [ s.run([ grad ], { x: i })[0] for i in inputs ]
 
-        plt.subplot(2, 1, 1)
-        plt.title('Polynomial')
-        plt.plot(inputs, results_y, linestyle='-', color='red', linewidth=3)
-        plt.xlim(-2.0, 2.0)
-        plt.ylim(-10.0, 10.0)
-        plt.ylabel('y')
-        plt.grid(True)
-
-        plt.subplot(2, 1, 2)
-        plt.title('Gradient')
-        plt.plot(inputs, results_g, linestyle=':', color='blue', linewidth=3)
-        plt.xlim(-2.0, 2.0)
-        plt.xlabel('x')
-        plt.ylim(-10.0, 10.0)
-        plt.ylabel('y')
-        plt.grid(True)
-
+        (fig, ax) = plt.subplots(2, 1)
+        ax[0].set_title('Polynomial')
+        ax[0].plot(inputs, results_y, color='red', linestyle='-', linewidth=3)
+        ax[0].set_xlim(-2.0, 2.0)
+        ax[0].set_ylim(-10.0, 10.0)
+        ax[0].set_ylabel('y')
+        ax[0].grid(True)
+        
+        ax[1].set_title('Gradient')
+        ax[1].plot(inputs, results_g, color='blue', linestyle=':', linewidth=3)
+        ax[1].set_xlim(-2.0, 2.0)
+        ax[1].set_xlabel('x')
+        ax[1].set_ylim(-10.0, 10.0)
+        ax[1].set_ylabel('dy/dx')
+        ax[1].grid(True)
+        
+        fig.tight_layout()
         plt.show()
