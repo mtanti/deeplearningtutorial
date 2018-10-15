@@ -39,7 +39,7 @@ with g.as_default():
         train_errors = list()
         test_errors = list()
         print('epoch', 'trainerror', 'testerror', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6')
-        for epoch in range(2000):
+        for epoch in range(1, 2000+1):
             s.run([ step ], { xs: train_x, ts: train_y })
 
             [ curr_c0, curr_c1, curr_c2, curr_c3, curr_c4, curr_c5, curr_c6 ] = s.run([ c0, c1, c2, c3, c4, c5, c6 ], { })
@@ -55,7 +55,10 @@ with g.as_default():
                 ax[0].cla()
                 ax[1].cla()
 
-                #Plot points
+                #Plot points and polynomial
+                all_xs = np.linspace(-2.5, 2.5, 50)
+                [ all_ys ] = s.run([ ys ], {xs: all_xs})
+                ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
                 ax[0].plot(train_x, train_y, color='red', linestyle='', marker='o', markersize=10, label='train')
                 ax[0].plot(test_x, test_y, color='orange', linestyle='', marker='o', markersize=10, label='test')
                 ax[0].set_xlim(-2.5, 2.5)
@@ -65,11 +68,6 @@ with g.as_default():
                 ax[0].set_title('Polynomial')
                 ax[0].grid(True)
                 ax[0].legend()
-
-                #Plot polynomial
-                all_xs = np.arange(-2.5, 2.5+0.1, 0.1)
-                [ all_ys ] = s.run([ ys ], {xs: all_xs})
-                ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
 
                 #Plot error progress
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
@@ -89,4 +87,5 @@ with g.as_default():
         #Show test error at the end
         [ test_error ]  = s.run([ error ], { xs: test_x,  ts: test_y })
         ax[1].annotate('Test error: '+str(test_error), (0,0))
+        print('Test error:', test_error)
         fig.show()

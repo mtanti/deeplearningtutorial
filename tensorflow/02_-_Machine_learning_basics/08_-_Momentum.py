@@ -4,9 +4,8 @@ import numpy as np
 
 learning_rate = 0.0001
 weight_decay_weight = 0.001
-
-#The minibatch size specifies how many training set items to show the optimiser at once
 minibatch_size = 2
+momentum = 0.1
 
 np.random.seed(0)
 
@@ -28,7 +27,8 @@ with g.as_default():
     params_size = c1**2 + c2**2 + c3**2 + c4**2 + c5**2 + c6**2
     loss = error + weight_decay_weight*params_size
 
-    step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    #Momentum is gradient descent where a fraction of the previous gradient is added to the current gradient
+    step = tf.train.MomentumOptimizer(learning_rate, momentum).minimize(loss)
 
     init = tf.global_variables_initializer()
     
@@ -53,10 +53,8 @@ with g.as_default():
         epochs_since_last_best_val_error = 0
         print('epoch', 'trainerror', 'valerror', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6')
         for epoch in range(1, 2000+1):
-            #Shuffle a list of indexes for every training item
             indexes = np.arange(len(train_x))
             np.random.shuffle(indexes)
-            #Apply gradient descent on groups of training items individually
             for i in range(int(np.ceil(len(indexes)/minibatch_size))): #Take the ceiling of the number of minibatches needed to process all the training set
                 minibatch_indexes = indexes[i*minibatch_size:(i+1)*minibatch_size] #These are the training set indexes of the items in the current minibatch
                 s.run([ step ], { xs: [train_x[j] for j in minibatch_indexes], ts: [train_y[j] for j in minibatch_indexes] })

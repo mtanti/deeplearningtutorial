@@ -31,7 +31,7 @@ with g.as_default():
         points_y = [3.22, 1.64, 0.58, 1.25, 5.07]
         
         print('epoch', 'error', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6')
-        for epoch in range(2000):
+        for epoch in range(1, 2000+1):
             [ curr_c0, curr_c1, curr_c2, curr_c3, curr_c4, curr_c5, curr_c6 ] = s.run([ c0, c1, c2, c3, c4, c5, c6 ], { })
             [ curr_error ] = s.run([ error ], { xs: points_x, ts: points_y })
             if epoch%10 == 0:
@@ -39,7 +39,7 @@ with g.as_default():
 
             s.run([ step ], { xs: points_x, ts: points_y })
 
-        all_xs = np.arange(-2.5, 2.5+0.1, 0.1)
+        all_xs = np.linspace(-2.5, 2.5, 50)
         [ all_ys ] = s.run([ ys ], {xs: all_xs})
         
         (fig, ax) = plt.subplots(1, 1)

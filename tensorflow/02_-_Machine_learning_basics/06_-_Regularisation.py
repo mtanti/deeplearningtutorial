@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 
-weight_decay_weight = 0.1
+learning_rate = 0.0005
+
+weight_decay_weight = 0.001
 
 g = tf.Graph()
 with g.as_default():
@@ -24,7 +26,7 @@ with g.as_default():
     params_size = c1**2 + c2**2 + c3**2 + c4**2 + c5**2 + c6**2
     loss = error + weight_decay_weight*params_size
 
-    step = tf.train.GradientDescentOptimizer(0.0005).minimize(loss)
+    step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 
     init = tf.global_variables_initializer()
     
@@ -47,8 +49,8 @@ with g.as_default():
         val_errors = list()
         best_val_error = np.inf
         epochs_since_last_best_val_error = 0
-        print('epoch', 'trainerror', 'testerror', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6')
-        for epoch in range(2000):
+        print('epoch', 'trainerror', 'valerror', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6')
+        for epoch in range(1, 2000+1):
             s.run([ step ], { xs: train_x, ts: train_y })
 
             [ curr_c0, curr_c1, curr_c2, curr_c3, curr_c4, curr_c5, curr_c6 ] = s.run([ c0, c1, c2, c3, c4, c5, c6 ], { })
@@ -57,14 +59,15 @@ with g.as_default():
             train_errors.append(train_error)
             val_errors.append(val_error)
 
-            if val_error < best_val_error:
-                best_val_error = val_error
-                epochs_since_last_best_val_error = 0
-            elif epoch > 1000:
-                epochs_since_last_best_val_error += 1
+            if epoch > 30:
+                if val_error < best_val_error:
+                    best_val_error = val_error
+                    epochs_since_last_best_val_error = 0
+                else:
+                    epochs_since_last_best_val_error += 1
 
-            if epochs_since_last_best_val_error >= 3:
-                break
+                if epochs_since_last_best_val_error >= 3:
+                    break
 
             if epoch%50 == 0:
                 print(epoch, train_error, val_error, curr_c0, curr_c1, curr_c2, curr_c3, curr_c4, curr_c5, curr_c6)
@@ -72,6 +75,9 @@ with g.as_default():
                 ax[0].cla()
                 ax[1].cla()
 
+                all_xs = np.linspace(-2.5, 2.5, 50)
+                [ all_ys ] = s.run([ ys ], { xs: all_xs })
+                ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
                 ax[0].plot(train_x, train_y, color='red', linestyle='', marker='o', markersize=10, label='train')
                 ax[0].plot(val_x, val_y, color='yellow', linestyle='', marker='o', markersize=10, label='val')
                 ax[0].plot(test_x, test_y, color='orange', linestyle='', marker='o', markersize=10, label='test')
@@ -82,10 +88,6 @@ with g.as_default():
                 ax[0].set_title('Polynomial')
                 ax[0].grid(True)
                 ax[0].legend()
-
-                all_xs = np.arange(-2.5, 2.5+0.1, 0.1)
-                [ all_ys ] = s.run([ ys ], { xs: all_xs })
-                ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
 
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
                 ax[1].plot(np.arange(len(val_errors)), val_errors, color='yellow', linestyle='-', label='val')

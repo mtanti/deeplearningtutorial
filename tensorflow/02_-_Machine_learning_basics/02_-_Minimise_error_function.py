@@ -46,7 +46,7 @@ with g.as_default():
         print('epoch', 'x', 'error')
         min_xs = list()
         min_ys = list()
-        for epoch in range(10):
+        for epoch in range(1, 10+1):
             [ curr_x, curr_error ] = s.run([ min_x, error ], {})
             min_xs.append(curr_x)
             min_ys.append(0)

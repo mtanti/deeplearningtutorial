@@ -38,7 +38,7 @@ with g.as_default():
         print('epoch', 'x', 'y')
         min_xs = list()
         min_ys = list()
-        for epoch in range(10): #Optimize min_x for 10 times (epochs)
+        for epoch in range(1, 10+1): #Optimize min_x for 10 times (epochs)
             [ curr_x, curr_y ] = s.run([ min_x, y ], {})
             min_xs.append(curr_x)
             min_ys.append(curr_y)
