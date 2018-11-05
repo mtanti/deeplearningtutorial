@@ -9,13 +9,14 @@ with g.as_default():
     ys = tf.sigmoid(xs)
 
     square_error = (ys - 1)**2
-    binary_cross_entropy = -tf.log(ys) #Can also be tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(xs), logits=xs)
-    
-    #Note that sigmoid_cross_entropy_with_logits takes the input to the sigmoid (called the logits) rather than the sigmoid itself in order to avoid numerical overflows.
+    binary_cross_entropy = -tf.log(ys)
     
     #The above error functions are used to make the sigmoid output a 1. The following is to make it output a 0:
-    #square_error = (ys - 0)**2
-    #binary_cross_entropy = -tf.log(1 - ys) #Can also be tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.zeros_like(xs), logits=xs)
+    # square_error = (ys - 0)**2
+    # binary_cross_entropy = -tf.log(1 - ys)
+    
+    #Binary cross entropy can be generalised to depend on what the should be like this:
+    # binary_cross_entropy = -tf.log(ys)*ts + -tf.log(1 - ys)*(1 - ts)
     
     g.finalize()
 
@@ -24,10 +25,12 @@ with g.as_default():
         
         all_xs = np.linspace(-10, 10, 50)
         
-        [ all_ys ] = s.run([ ys ], {xs: all_xs})
+        [ all_ys ] = s.run([ ys ], { xs: all_xs })
         ax[0].plot(all_xs, all_ys, color='red', linestyle=':', linewidth=3, label='sigmoid')
-        [ all_ys ] = s.run([ square_error ], {xs: all_xs})
+        
+        [ all_ys ] = s.run([ square_error ], { xs: all_xs })
         ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3, label='error')
+        
         ax[0].set_xlim(-10, 10)
         ax[0].set_xlabel('x')
         ax[0].set_ylim(-0.1, 5.0)
@@ -36,10 +39,12 @@ with g.as_default():
         ax[0].legend()
         ax[0].grid(True)
 
-        [ all_ys ] = s.run([ ys ], {xs: all_xs})
+        [ all_ys ] = s.run([ ys ], { xs: all_xs })
         ax[1].plot(all_xs, all_ys, color='red', linestyle=':', linewidth=3, label='sigmoid')
-        [ all_ys ] = s.run([ binary_cross_entropy ], {xs: all_xs})
+        
+        [ all_ys ] = s.run([ binary_cross_entropy ], { xs: all_xs })
         ax[1].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3, label='error')
+        
         ax[1].set_xlim(-10, 10)
         ax[1].set_xlabel('x')
         ax[1].set_ylim(-0.1, 5.0)

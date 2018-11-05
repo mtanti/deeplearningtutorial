@@ -22,6 +22,8 @@ with g.as_default():
     c4 = tf.get_variable('c4', [], tf.float32, tf.constant_initializer(np.random.normal(0.0, 0.01)))
     c5 = tf.get_variable('c5', [], tf.float32, tf.constant_initializer(np.random.normal(0.0, 0.01)))
     c6 = tf.get_variable('c6', [], tf.float32, tf.constant_initializer(np.random.normal(0.0, 0.01)))
+    #Note that we can also use tf.random_normal_initializer(0.0, 0.01) instead of the constant_initializer
+    
     ys = c0 + c1*xs + c2*xs**2 + c3*xs**3 + c4*xs**4 + c5*xs**5 + c6*xs**6
     
     error = tf.reduce_mean((ys - ts)**2)

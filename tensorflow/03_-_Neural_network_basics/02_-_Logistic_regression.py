@@ -29,12 +29,9 @@ with g.as_default():
         train_y = [ [0],   [1],   [1],   [1] ]
         
         train_errors = list()
-        print('epoch', 'trainerror', 'W', 'b')
+        print('epoch', 'train error', 'W', 'b')
         for epoch in range(1, 500+1):
-            indexes = np.arange(len(train_x))
-            np.random.shuffle(indexes)
-            for i in range(len(indexes)):
-                s.run([ step ], { xs: [train_x[i]], ts: [train_y[i]] })
+            s.run([ step ], { xs: train_x, ts: train_y })
 
             [ curr_W, curr_b ] = s.run([ W, b ], { })
             [ train_error ] = s.run([ error ], { xs: train_x, ts: train_y })
@@ -43,12 +40,11 @@ with g.as_default():
             if epoch%50 == 0:
                 print(epoch, train_error, curr_W.tolist(), curr_b.tolist())
                 
-                ax[0].cla()
-                ax[1].cla()
-
                 (all_x0s, all_x1s) = np.meshgrid(np.linspace(0.0, 1.0, 50), np.linspace(0.0, 1.0, 50))
                 [ all_ys ] = s.run([ ys ], { xs: np.stack([np.reshape(all_x0s, [-1]), np.reshape(all_x1s, [-1])], axis=1) })
                 all_ys = np.reshape(all_ys, [50, 50])
+                
+                ax[0].cla()
                 ax[0].contourf(all_x0s, all_x1s, all_ys, 100, vmin=0.0, vmax=1.0, cmap='bwr')
                 ax[0].set_xlim(0.0, 1.0)
                 ax[0].set_xlabel('x0')
@@ -57,6 +53,7 @@ with g.as_default():
                 ax[0].set_title('Logistic regression')
                 ax[0].grid(True)
                 
+                ax[1].cla()
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
                 ax[1].set_xlim(-10, 500)
                 ax[1].set_xlabel('epoch')
