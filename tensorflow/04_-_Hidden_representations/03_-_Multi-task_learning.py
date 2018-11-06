@@ -45,14 +45,14 @@ with g.as_default():
         phrases = tf.placeholder(tf.int32, [None, 3], 'phrases')
         tag_targets = tf.placeholder(tf.int32, [None], 'tag_targets')
 
-        embedded_phrases = tf.reshape(tf.nn.embedding_lookup(embedding_matrix, phrases), [-1, 2*3])
+        embedded_phrases = tf.reshape(tf.nn.embedding_lookup(embedding_matrix, phrases), [-1, 2*3]) #Reusing the same embedding matrix variable defined above (this is called parameter sharing)
         
         W = tf.get_variable('W', [2*3, len(tag_vocab)], tf.float32, tf.random_normal_initializer(stddev=0.01, seed=0))
         b = tf.get_variable('b', [len(tag_vocab)], tf.float32, tf.zeros_initializer())
         tag_logits = tf.matmul(embedded_phrases, W) + b
         tag_probs = tf.nn.softmax(tag_logits)
 
-    #Train both outputs at once using multi-objective optimisation
+    #Train both outputs/tasks at once (multi-objective optimisation, just like weight decay regularisation)
     error = (
             tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=pred_targets, logits=pred_logits))
             +
@@ -100,7 +100,7 @@ with g.as_default():
                 ax[1].set_xlim(-10, 2000)
                 ax[1].set_xlabel('epoch')
                 ax[1].set_ylim(0.0, 0.1)
-                ax[1].set_ylabel('XE')
+                ax[1].set_ylabel('XE') #Cross entropy
                 ax[1].grid(True)
                 ax[1].set_title('Error progress')
                 ax[1].legend()

@@ -75,7 +75,7 @@ with g.as_default():
                 ax[1].set_xlim(-10, 2000)
                 ax[1].set_xlabel('epoch')
                 ax[1].set_ylim(0.0, 2.0)
-                ax[1].set_ylabel('MSE')
+                ax[1].set_ylabel('XE') #Cross entropy
                 ax[1].grid(True)
                 ax[1].set_title('Error progress')
                 ax[1].legend()
