@@ -105,7 +105,7 @@ with g.as_default():
                 
                 ax.cla()
                 ax.plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
-                ax.set_xlim(-10, 200)
+                ax.set_xlim(0, 200)
                 ax.set_xlabel('epoch')
                 ax.set_ylim(0.0, 0.1)
                 ax.set_ylabel('XE') #Cross entropy

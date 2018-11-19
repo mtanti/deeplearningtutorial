@@ -72,7 +72,7 @@ with g.as_default():
                 #Plot error progress
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
                 ax[1].plot(np.arange(len(test_errors)), test_errors, color='orange', linestyle='-', label='test')
-                ax[1].set_xlim(-10, 2000)
+                ax[1].set_xlim(0, 2000)
                 ax[1].set_xlabel('epoch')
                 ax[1].set_ylim(0, 1)
                 ax[1].set_ylabel('MSE')

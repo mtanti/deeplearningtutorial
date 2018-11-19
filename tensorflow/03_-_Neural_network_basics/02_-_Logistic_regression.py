@@ -55,7 +55,7 @@ with g.as_default():
                 
                 ax[1].cla()
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
-                ax[1].set_xlim(-10, 500)
+                ax[1].set_xlim(0, 500)
                 ax[1].set_xlabel('epoch')
                 ax[1].set_ylim(0.0, 0.26)
                 ax[1].set_ylabel('MSE')
