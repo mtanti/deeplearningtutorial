@@ -44,7 +44,7 @@ with g.as_default():
     hs = tf.reduce_max(conv_hs, axis=1)
     
     W2 = tf.get_variable('W2', [hidden_layer_size, 1], tf.float32, tf.random_normal_initializer(stddev=0.01, seed=0))
-    b2 = tf.get_variable('b2', [1], tf.float32)
+    b2 = tf.get_variable('b2', [1], tf.float32, tf.zeros_initializer())
     logits = tf.matmul(hs, W2) + b2
     probs = tf.sigmoid(logits)
 
