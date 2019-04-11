@@ -1,5 +1,10 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
+
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+learning_rate = 0.2
 
 g = tf.Graph()
 with g.as_default():
@@ -14,7 +19,8 @@ with g.as_default():
     
     [ grad ] = tf.gradients([ y ], [ min_x ])
 
-    step = tf.assign(min_x, min_x - 0.2*grad) #Gradient descent equation with a learning rate of 0.2
+    #Gradient descent equation with a learning rate of 0.2
+    step = tf.assign(min_x, min_x - learning_rate*grad)
 
     init = tf.global_variables_initializer()
 
@@ -24,8 +30,8 @@ with g.as_default():
         s.run([ init ], { })
 
         #Plot the quadratic equation
-        inputs = [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
-        results_y = [ s.run([ y ], { min_x: i })[0] for i in inputs ]
+        inputs = np.linspace(-2.0, 2.0, 20) #Get all values between -2 and 2 divided into 20 steps
+        results_y = [ s.run([ y ], { min_x: i })[0] for i in inputs ] # We can still set the x value, called min_x here, to any value we want
         (fig, ax) = plt.subplots(1, 1)
         ax.plot(inputs, results_y, color='red', linestyle='-', linewidth=3)
         ax.set_xlim(-2.0, 2.0)
@@ -33,18 +39,20 @@ with g.as_default():
         ax.set_ylim(-10.0, 10.0)
         ax.set_ylabel('y')
         ax.grid(True)
+        fig.tight_layout()
 
         #Find where each new min_x lands on the graph
-        print('epoch', 'x', 'y')
+        print('epoch', 'x', 'y', sep='\t')
         min_xs = list()
         min_ys = list()
         for epoch in range(1, 10+1): #Optimize min_x for 10 times (epochs)
             [ curr_x, curr_y ] = s.run([ min_x, y ], {})
             min_xs.append(curr_x)
             min_ys.append(curr_y)
-            print(epoch, curr_x, curr_y)
+            print(epoch, curr_x, curr_y, sep='\t')
 
             #Optimize min_x a little here
             s.run([ step ], {})
+
         ax.plot(min_xs, min_ys, color='blue', marker='o', markersize=10)
         fig.show()

@@ -12,9 +12,10 @@ with g.as_default(): #Set it as the default graph
     #Make the graph read-only
     g.finalize()
 
-    tf.summary.FileWriter('.', g) #For TensorBoard visualisation
+    #For TensorBoard visualisation (optional)
+    tf.summary.FileWriter('', g) #Save TensorBoard data in the current folder (you can change '' to some other directory if you want)
 
-    #Create a session for the default graph
+    #Create a session to run the graph
     with tf.Session() as s:
         [ result ] = s.run([ c ], { a: 1.0, b: 2.0 })
         print(result)

@@ -1,9 +1,12 @@
 import tensorflow as tf
 
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 g = tf.Graph()
 with g.as_default():
     x = tf.placeholder(tf.float32, [], 'x')
 
+    #Co-efficients of a polynomial of degree 3 (y = a + bx + cx^2 + dx^3)
     a = tf.get_variable('a', [], tf.float32, tf.random_normal_initializer())
     b = tf.get_variable('b', [], tf.float32, tf.random_normal_initializer())
     c = tf.get_variable('c', [], tf.float32, tf.random_normal_initializer())
@@ -17,5 +20,15 @@ with g.as_default():
 
     with tf.Session() as s:
         s.run([ init ], { })
-        [ result ] = s.run([ y ], { x: 1 })
+        
+        coefficients = s.run([ a, b, c, d ], { })
+        print(coefficients)
+        
+        [ result ] = s.run([ y ], { x: -1.0 })
+        print(result)
+        
+        [ result ] = s.run([ y ], { x: 0.0 })
+        print(result)
+        
+        [ result ] = s.run([ y ], { x: 1.0 })
         print(result)

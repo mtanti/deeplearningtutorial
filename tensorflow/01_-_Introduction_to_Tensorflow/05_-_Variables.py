@@ -1,5 +1,8 @@
 import tensorflow as tf
 
+#Ignore deprecation warnings about Tensorflow v2 (no solution at time of writing)
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 g = tf.Graph()
 with g.as_default():
     v = tf.get_variable('v', [], tf.float32)

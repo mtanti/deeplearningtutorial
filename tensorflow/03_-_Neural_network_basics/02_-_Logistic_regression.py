@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+learning_rate = 1.0
+max_epochs = 500
 
 g = tf.Graph()
 with g.as_default():
@@ -13,7 +18,7 @@ with g.as_default():
     
     error = tf.reduce_mean((ys - ts)**2)
     
-    step = tf.train.GradientDescentOptimizer(1.0).minimize(error)
+    step = tf.train.GradientDescentOptimizer(learning_rate).minimize(error)
 
     init = tf.global_variables_initializer()
     
@@ -25,12 +30,13 @@ with g.as_default():
         (fig, ax) = plt.subplots(1, 2)
         plt.ion()
         
-        train_x = [[0,0], [0,1], [1,0], [1,1]]
-        train_y = [ [0],   [1],   [1],   [1] ]
+        #The training set (currently set for an OR function)
+        train_x = [ [0,0], [0,1], [1,0], [1,1] ]
+        train_y = [  [0],   [1],   [1],   [1]  ]
         
         train_errors = list()
-        print('epoch', 'train error', 'W', 'b')
-        for epoch in range(1, 500+1):
+        print('epoch', 'train error', 'W', 'b', sep='\t')
+        for epoch in range(1, max_epochs+1):
             s.run([ step ], { xs: train_x, ts: train_y })
 
             [ curr_W, curr_b ] = s.run([ W, b ], { })
@@ -38,7 +44,7 @@ with g.as_default():
             train_errors.append(train_error)
             
             if epoch%50 == 0:
-                print(epoch, train_error, curr_W.tolist(), curr_b.tolist())
+                print(epoch, train_error, [ [ round(ele, 3) for ele in row ] for row in curr_W.tolist() ], [ round(ele, 3) for ele in curr_b.tolist() ], sep='\t')
                 
                 (all_x0s, all_x1s) = np.meshgrid(np.linspace(0.0, 1.0, 50), np.linspace(0.0, 1.0, 50))
                 [ all_ys ] = s.run([ ys ], { xs: np.stack([np.reshape(all_x0s, [-1]), np.reshape(all_x1s, [-1])], axis=1) })
@@ -55,7 +61,7 @@ with g.as_default():
                 
                 ax[1].cla()
                 ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
-                ax[1].set_xlim(0, 500)
+                ax[1].set_xlim(0, max_epochs)
                 ax[1].set_xlabel('epoch')
                 ax[1].set_ylim(0.0, 0.26)
                 ax[1].set_ylabel('MSE')

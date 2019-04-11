@@ -18,7 +18,7 @@ with g.as_default():
         [
             2,
         ],
-        tf.float32,
+        tf.int32,
         [1]
     )
     

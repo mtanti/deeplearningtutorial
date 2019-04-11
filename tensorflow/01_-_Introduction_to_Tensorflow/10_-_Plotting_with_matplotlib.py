@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 g = tf.Graph()
 with g.as_default():
     x = tf.placeholder(tf.float32, [], 'x')
@@ -18,12 +20,16 @@ with g.as_default():
 
     with tf.Session() as s:
         s.run([ init ], { })
-        inputs = [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
-        results = [ s.run([ y ], { x: i })[0] for i in inputs ]
+        
+        coefficients = s.run([ a, b, c, d ], { })
+        print(coefficients)
+        
+        x_values = [ -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0 ]
+        y_values = [ s.run([ y ], { x: val })[0] for val in x_values ] #Get y values of each of the x values
 
         (fig, ax) = plt.subplots(1, 1) #Set the figure with the number of rows and columns of subplots (using more than one subplot will make 'ax' a list of each subplot's axis)
         ax.cla() #Optional: Clear the subplot
-        ax.plot(inputs, results, color='red', linestyle='-', linewidth=3) #Plot the points in (inputs, results)
+        ax.plot(x_values, y_values, color='red', linestyle='-', linewidth=3) #Plot the points in (inputs, results)
         ax.set_title('Polynomial') #Optional: Set the title for the subplot
         ax.set_xlim(-2.0, 2.0) #Optional: Set the range for the x-axis
         ax.set_xlabel('x') #Optional: Set the label for the x-axis
