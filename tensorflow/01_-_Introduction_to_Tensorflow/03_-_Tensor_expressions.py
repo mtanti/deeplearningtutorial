@@ -11,5 +11,5 @@ with g.as_default():
     g.finalize()
 
     with tf.Session() as s:
-        [ result ] = s.run([ b ], { a: [1.0, 2.0, 3.0] })
+        [ result ] = s.run([ b ], { a: [ 1.0, 2.0, 3.0 ] })
         print(result)
