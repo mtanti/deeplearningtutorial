@@ -1,1 +1,0 @@
-This directory stores examples for the deep learning framework [Tensorflow](https://www.tensorflow.org/) with Python.
