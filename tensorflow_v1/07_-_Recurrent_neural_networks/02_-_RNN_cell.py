@@ -20,15 +20,17 @@ class Cell(tf.nn.rnn_cell.RNNCell):
     def output_size(self):
         return 2
 
-    #This is where you define any variables used by the RNN cell
-    def build(self, inputs_shape):
-        print('building')
-        print('inputs_shape:', inputs_shape)
-        print()
+    #This is where we specify the variables being used by the cell (if we had any)
+    def build(self, input_shape):
+        print('build - input_shape:', input_shape[0].value, input_shape[1].value)
+        self.built = True
 
     #This is where you say how to combine the input and state vectors (note: the state, not the output vectors)
     #This function defines the new state as s(t+1) = x(t) and the new output as o(t+1) = -x(t)
     def call(self, x, curr_state):
+        #After running this script, notice the following in the print:
+        # * The dynamic_rnn changes the names of the x and curr_state
+        # * The shape of x would not include the sequence size as we only work with a single input item at a time
         print('curr_state:', curr_state)
         print('x:', x)
         print()
@@ -57,7 +59,7 @@ with g.as_default():
         tf.float32, [2]
     )
     c = Cell()
-    (output_cell, state_cell) = c.call(input_vec, init_state)
+    (output_cell, state_cell) = c(input_vec, init_state) #Just treat the cell as if it is a function
 
     #Using the RNN cell to process a whole sequence of inputs
     seqs = tf.constant(

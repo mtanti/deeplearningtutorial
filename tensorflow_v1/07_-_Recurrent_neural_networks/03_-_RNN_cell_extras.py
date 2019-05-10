@@ -18,7 +18,7 @@ class Cell(tf.nn.rnn_cell.RNNCell):
         return (2, 2) #Specify the vector size of each vector included in the outputs
 
     def build(self, inputs_shape):
-        pass
+        self.built = True
 
     def call(self, x, curr_state):
         (curr_state1, curr_state2) = curr_state

@@ -45,6 +45,7 @@ class Cell(tf.nn.rnn_cell.RNNCell):
     def build(self, inputs_shape):
         self.W = self.add_variable('W', [state_size+embedding_size, state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
         self.b = self.add_variable('b', [state_size], tf.float32, tf.zeros_initializer())
+        self.built = True
         
     def call(self, x, curr_state):
         layer_input = tf.concat([ curr_state, x ], axis=1)

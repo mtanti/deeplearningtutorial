@@ -10,8 +10,8 @@ embedding_size = 2
 state_size = 2
 
 tokens = [
-        'i like it'.split(' '),  #positive
-        'i hate it'.split(' '),  #negative
+        'i like it'.split(' '), #positive
+        'i hate it'.split(' '), #negative
         'i don\'t hate it'.split(' '), #positive
         'i don\'t like it'.split(' '), #negative
     ]
@@ -51,7 +51,8 @@ class Cell(tf.nn.rnn_cell.RNNCell):
     def build(self, inputs_shape):
         self.W = self.add_variable('W', [state_size+embedding_size, state_size], tf.float32, tf.random_normal_initializer(stddev=0.5)) #RNNs might need more varied initial weights to work well
         self.b = self.add_variable('b', [state_size], tf.float32, tf.zeros_initializer())
-        
+        self.built = True
+
     def call(self, x, curr_state):
         state_input = tf.concat([ curr_state, x ], axis=1)
         new_state = tf.tanh(tf.matmul(state_input, self.W) + self.b)

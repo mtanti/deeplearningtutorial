@@ -3,6 +3,36 @@ import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+state_size = 2
+embedding_size = 2
+init_stddev = 0.01
+
+class Cell(tf.nn.rnn_cell.RNNCell):
+
+    def __init__(self):
+        super().__init__()
+        self.W = None
+        self.b = None
+
+    @property
+    def state_size(self):
+        return state_size
+
+    @property
+    def output_size(self):
+        return state_size
+
+    def build(self, input_shape):
+        self.W = self.add_variable('W', [state_size+embedding_size, state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+        self.b = self.add_variable('b', [state_size], tf.float32, tf.zeros_initializer())
+        self.built = True
+
+    def call(self, x, curr_state):
+        layer_input = tf.concat([ curr_state, x ], axis=1)
+        new_state = tf.tanh(tf.matmul(layer_input, self.W) + self.b)
+        return (new_state, new_state) #Return the state as both output and state
+
+
 g = tf.Graph()
 with g.as_default():
     seqs = tf.constant(
@@ -17,15 +47,15 @@ with g.as_default():
         ], tf.int32, [1]
     )
     
-    with tf.variable_scope('fw'):
-        init_state_fw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_fw')
-        cell_fw = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+    init_state_fw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_fw')
+    init_state_bw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_bw')
 
-    with tf.variable_scope('bw'):
-        init_state_bw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_bw')
-        cell_bw = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
-        
+    cell_fw = Cell()
+    cell_bw = Cell()
+    
     ((outputs_fw, outputs_bw), (state_fw, state_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, seqs, sequence_length=seq_len, initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
+    
+    #Note that you can use the same RNN for both forward and backward encodings by using just one cell variable
     
     #This is to encode the whole sequence
     state = tf.concat([ state_fw, state_bw ], axis=1)

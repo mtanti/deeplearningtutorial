@@ -17,8 +17,8 @@ class Cell(tf.nn.rnn_cell.RNNCell):
         return 2
 
     def build(self, inputs_shape):
-        pass
-        
+        self.built = True
+
     def call(self, x, curr_state):
         new_state = x
         output = -x
