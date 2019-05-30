@@ -1,14 +1,5 @@
 import numpy as np
 
-# Diagram of neural network:
-#
-#     W1 W2 W3
-# x_0 --O--O--O a3_0
-#     \/ \/ \/
-#     /\ /\ /\
-# x_1 --O--O--O a3_1
-#    l  k  j  i
-
 def sig(z):
     return 1/(1 + np.exp(-z))
 
@@ -24,17 +15,28 @@ epsilon = 1e-1
 learning_rate = 2.0
 num_epochs = 200
 
-W1 = np.random.normal(0.0, 1.0, size=[num_inputs,num_hiddens1])
+xs = np.array([ [0,0], [0,1], [1,0], [1,1] ])
+ts = np.array([ [0,0], [0,1], [1,0], [1,1] ])
+
+W1 = np.random.normal(0.0, 1.0, size=[num_inputs, num_hiddens1])
 b1 = np.zeros([num_hiddens1])
 
-W2 = np.random.normal(0.0, 1.0, size=[num_hiddens1,num_hiddens2])
+W2 = np.random.normal(0.0, 1.0, size=[num_hiddens1, num_hiddens2])
 b2 = np.zeros([num_hiddens2])
 
-W3 = np.random.normal(0.0, 1.0, size=[num_hiddens2,num_outputs])
+W3 = np.random.normal(0.0, 1.0, size=[num_hiddens2, num_outputs])
 b3 = np.zeros([num_outputs])
 
-x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-t = np.array([[0, 0], [0, 1], [0, 1], [1, 0]])
+#Diagram of neural network:
+
+#     W1 W2 W3
+# x_0 --O--O--O a3_0
+#     \/ \/ \/
+#     /\ /\ /\
+# x_1 --O--O--O a3_1
+#    l  k  j  i
+
+#This is the way we usually express the neural network equation (with a different letter used as an indexing variable at every layer as shown in the diagram):
 
 #e_i  = (a3_i - t_i)^2
 #a3_i = sig(z3_i)
@@ -44,17 +46,16 @@ t = np.array([[0, 0], [0, 1], [0, 1], [1, 0]])
 #a1_j = sig(z1_j)
 #z1_j = sum_k(x_k*W1_kj) + b1_j
 
-e  = lambda i:(a3(i) - t[:,i])**2
+#This is how you implement the same equation as above in Python using only index variables as inputs for every line:
+e  = lambda i:(a3(i) - ts[:,i])**2
 a3 = lambda i:sig(z3(i))
 z3 = lambda i:sum(a2(j)*W3[j,i] for j in range(num_hiddens2)) + b3[i]
 a2 = lambda j:sig(z2(j))
 z2 = lambda j:sum(a1(k)*W2[k,j] for k in range(num_hiddens1)) + b2[j]
 a1 = lambda k:sig(z1(k))
-z1 = lambda k:sum(x[:,l]*W1[l,k] for l in range(num_inputs)) + b1[k]
+z1 = lambda k:sum(xs[:,l]*W1[l,k] for l in range(num_inputs)) + b1[k]
 
-for _ in range(num_epochs):
-    print(e(0).sum() + e(1).sum())
-
+for epoch in range(num_epochs):
     g_W3 = np.zeros_like(W3)
     for i in range(num_outputs):
         for j in range(num_hiddens2):
@@ -131,5 +132,12 @@ for _ in range(num_epochs):
     b2 -= learning_rate*g_b2
     W1 -= learning_rate*g_W1
     b1 -= learning_rate*g_b1
+    
+    if epoch%10 == 0:
+        print(epoch, e(0).sum() + e(1).sum())
 
-print(np.stack([a3(0), a3(1)], 1))
+ys = np.stack([ a3(0), a3(1) ], axis=1)
+
+print()
+for (x, y) in zip(xs.tolist(), ys.tolist()):
+    print(x, np.round(y, 2))
