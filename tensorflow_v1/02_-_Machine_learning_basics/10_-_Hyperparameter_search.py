@@ -6,9 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import skopt
 
-max_epochs = 2000
 num_random_hyperparams = 10 #The number of random hyperparameters to evaluate during the exploration phase.
-num_chosen_hyperparams = 10 #The number of selected hyperparameters to evaluate during the tuning phase.
+num_chosen_hyperparams = 20 #The number of selected hyperparameters to evaluate during the tuning phase.
 
 #The hyperparameter optimiser.
 opt = skopt.Optimizer(
@@ -18,22 +17,24 @@ opt = skopt.Optimizer(
         
         #The momentum can be any real number between 1e-2 and 1.0 on a log scaled distribution.
         skopt.space.Real(1e-2, 1e-0, 'log-uniform', name='momentum'),
+        
+        #The maximum number of epochs can be any integer number between 1 and 2000 both inclusive.
+        skopt.space.Integer(1, 2000, name='max_epochs'),
     ],
     n_initial_points=num_random_hyperparams, #The number of random hyperparameters to try initially for the algorithm to have a feel of where to search.
     base_estimator='RF', #Use Random Forests to predict which hyperparameters will result in good training.
     acq_func='EI', #Choose a set of hyperparameters that maximise the Expected Improvement of the model.
     acq_optimizer='auto', #Let algorithm figure out how to find the most promising hyperparameters to try next.
 )
-#There's also:
-#   skopt.space.Integer(min_value, max_value, name='integer_hyperparam') for when you want to choose an integer value in a range (both inclusive).
-#   skopt.space.Categorical([value1, value2, value3], name='categorical_hyperparam') for when you want to choose a value from a given list.
+#There's also skopt.space.Categorical([value1, value2, value3], name='categorical_hyperparam') for when you want to choose a value from a given list.
 #You can leave out 'log-uniform' if you're not looking for exponential values.
 #See https://scikit-optimize.github.io/#skopt.Optimizer for information on the Optimizer class.
 #See https://scikit-optimize.github.io/space/space.m.html for information on each optimisable data type.
 
 class Model(object):
 
-    def __init__(self, degree, learning_rate, momentum): #Hyperparameters are parameterised. Note that if you also want to optimise hyperparameter that control the training algorithm such as the number of maximum epochs or minibatch size, then you will have to add a method for completely training the model here.
+    def __init__(self, degree, learning_rate, momentum, max_epochs): #Hyperparameters are parameterised. Note that since we also want to optimise hyperparameters that control the training algorithm, that is, the maximum number of epochs, then we will have to add a method for completely training the model here.
+        self.max_epochs = max_epochs
         num_coefficients = degree + 1
         
         self.graph = tf.Graph()
@@ -69,6 +70,11 @@ class Model(object):
     def optimisation_step(self, xs, ts):
         return self.sess.run([ self.optimiser_step ], { self.xs: xs, self.ts: ts })
     
+    def train(self, xs, ts): #Completely train the model from scratch.
+        self.initialise()
+        for epoch in range(1, self.max_epochs+1):
+            self.optimisation_step(train_x, train_y)
+    
     def get_params(self):
         return self.sess.run(self.coeffs, { })
     
@@ -88,7 +94,7 @@ test_y  = [ 2.38, 0.05, 0.47, 1.67 ]
 
 print('Starting hyperparameter tuning')
 print()
-print('#', 'learning_rate', 'momentum', 'error', sep='\t')
+print('#', 'learning_rate', 'momentum', 'max_epochs', 'error', sep='\t')
 
 #Note that the below code is the long but controllable version of using skopt. For the single line code version you can follow this link:
 #https://scikit-optimize.github.io/optimizer/index.html#skopt.optimizer.forest_minimize
@@ -107,26 +113,24 @@ for i in range(1, num_random_hyperparams + num_chosen_hyperparams + 1):
         
         #Ask for one hyperparameter combination. If it was a bad combination then ask for two next time and take the last, and so on until one that works is found. The ask method gives a list of hyperparameter candidates and will return the same candidates if you ask for the same number of candidates.
         new_hyperparams = opt.ask(num_hyperparams_to_ask)[-1]
-        (learning_rate, momentum) = new_hyperparams
+        (learning_rate, momentum, max_epochs) = new_hyperparams
 
         #Test the hyperparameters by attempting to get the error.
         try:
-            model = Model(6, learning_rate, momentum)
-            model.initialise()
-            for epoch in range(1, max_epochs+1):
-                model.optimisation_step(train_x, train_y)
+            model = Model(6, learning_rate, momentum, max_epochs)
+            model.train(train_x, train_y)
             val_error = model.get_error(val_x, val_y)
             model.close()
 
             if np.isnan(val_error) or np.isinf(val_error):
                 raise ValueError()
         except ValueError: #If some kind of error happened during evaluation of the model or if the error returned was NaN or infinite, ask for another candidate hyperparameter combination.
-            print(i, learning_rate, momentum, 'error, retrying', sep='\t')
+            print(i, learning_rate, momentum, max_epochs, 'error, retrying', sep='\t')
             num_hyperparams_to_ask += 1
             continue
         
         #If we get to here then we have found a valid hyperparameter combination and can continue.
-        print(i, learning_rate, momentum, val_error, sep='\t')
+        print(i, learning_rate, momentum, max_epochs, val_error, sep='\t')
         break
     
     #Once a proper hyperparameter combination has been found, tell the optimiser about it together with its associated error in order to give it more information about which hyperparameter to suggest next. Unfortunately skopt can only be used to maximise not minimise so we have to make it maximise the negative error.
@@ -141,19 +145,18 @@ print()
 print('Tuning finished')
 print()
 
-(learning_rate, momentum) = best_hyperparams
+(learning_rate, momentum, max_epochs) = best_hyperparams
 print('Best hyperparameters found:')
 print('learning_rate:', learning_rate)
 print('momentum:', momentum)
+print('max_epochs:', max_epochs)
 print()
 print('Starting actual model training')
 print()
 
-#Finally take the best found hyperparameters and use them
-model = Model(6, learning_rate, momentum)
-model.initialise()
-for epoch in range(1, max_epochs+1):
-    model.optimisation_step(train_x, train_y)
+#Finally take the best found hyperparameters and use them.
+model = Model(6, learning_rate, momentum, max_epochs)
+model.train(train_x, train_y)
 test_error = model.get_error(test_x, test_y)
 
 print('Test error:', test_error)
