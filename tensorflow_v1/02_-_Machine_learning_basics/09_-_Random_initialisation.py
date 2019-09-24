@@ -1,99 +1,132 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+import numpy as np
+import matplotlib.pyplot as plt
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+max_epochs = 2000
 
-learning_rate = 0.0001
-max_epochs = 4500
+class Model(object):
 
-g = tf.Graph()
-with g.as_default():
-    xs = tf.placeholder(tf.float32, [None], 'xs')
-    ts = tf.placeholder(tf.float32, [None], 'ts')
-
-    #Initialise the variables to small random values
-    c0 = tf.get_variable('c0', [], tf.float32, tf.zeros_initializer())
-    c1 = tf.get_variable('c1', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01)) #A random number from the normal distribution with a mean of zero and a standard deviation of 0.01
-    c2 = tf.get_variable('c2', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01))
-    c3 = tf.get_variable('c3', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01))
-    c4 = tf.get_variable('c4', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01))
-    c5 = tf.get_variable('c5', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01))
-    c6 = tf.get_variable('c6', [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=0.01))
-    #Note that there is no need to specify a mean of 0.0 as this is the default, so it can just be left out
-    
-    ys = c0 + c1*xs + c2*xs**2 + c3*xs**3 + c4*xs**4 + c5*xs**5 + c6*xs**6
-    
-    error = tf.reduce_mean((ys - ts)**2)
-    
-    step = tf.train.GradientDescentOptimizer(learning_rate).minimize(error)
-
-    init = tf.global_variables_initializer()
-    
-    g.finalize()
-
-    with tf.Session() as s:
-        s.run([ init ], { })
-
-        (fig, ax) = plt.subplots(1, 2)
-        plt.ion()
+    def __init__(self, degree):
+        learning_rate = 0.0005
+        init_stddev = 0.01 #The standard deviation to use when initialising the parameters randomly.
+        num_coefficients = degree + 1
         
-        train_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
-        train_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
-        val_x   = [  -1.75, -0.75, 0.25, 1.25 ]
-        val_y   = [ 3.03, 0.64, 0.46, 0.77 ]
-        test_x  = [ -1.5, -0.5, 0.5, 1.5 ]
-        test_y  = [ 2.38, 0.05, 0.47, 1.67 ]
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            self.xs = tf.placeholder(tf.float32, [None], 'xs')
+            self.ts = tf.placeholder(tf.float32, [None], 'ts')
+
+            self.coeffs = []
+            for i in range(num_coefficients):
+                if i == 0:
+                    coeff = tf.get_variable('coeff_'+str(i), [], tf.float32, tf.zeros_initializer()) #The constant term does not need to be set randomly.
+                    self.ys = coeff
+                else:
+                    coeff = tf.get_variable('coeff_'+str(i), [], tf.float32, tf.random_normal_initializer(mean=0.0, stddev=init_stddev)) #A random number from the normal distribution.
+                    #Note that there is no need to specify a mean of 0.0 as this is the default, so it can just be left out.
+                    
+                    self.ys = self.ys + coeff*self.xs**i
+                    
+                self.coeffs.append(coeff)
+            
+            self.error = tf.reduce_mean((self.ys - self.ts)**2)
+
+            self.optimiser_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(self.error)
+            
+            self.init = tf.global_variables_initializer()
+
+            self.graph.finalize()
+            
+            self.sess = tf.Session()
+
+    def initialise(self):
+        return self.sess.run([ self.init ], { })
+    
+    def close(self):
+        self.sess.close()
+    
+    def optimisation_step(self, xs, ts):
+        return self.sess.run([ self.optimiser_step ], { self.xs: xs, self.ts: ts })
+    
+    def get_params(self):
+        return self.sess.run(self.coeffs, { })
+    
+    def get_error(self, xs, ts):
+        return self.sess.run([ self.error ], { self.xs: xs, self.ts: ts })[0]
+    
+    def predict(self, xs):
+        return self.sess.run([ self.ys ], { self.xs: xs })[0]
+    
+model = Model(6)
+model.initialise()
+
+train_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
+train_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
+test_x  = [ -1.5, -0.5, 0.5, 1.5 ]
+test_y  = [ 2.38, 0.05, 0.47, 1.67 ]
+
+(fig, axs) = plt.subplots(1, 2)
+
+axs[0].plot(train_x, train_y, color='red', linestyle='', marker='o', markersize=10, label='train')
+axs[0].plot(test_x, test_y, color='orange', linestyle='', marker='o', markersize=10, label='test')
+axs[0].set_title('Polynomial')
+axs[0].set_xlim(-2.5, 2.5)
+axs[0].set_xlabel('x')
+axs[0].set_ylim(-10.0, 10.0)
+axs[0].set_ylabel('y')
+axs[0].grid(True)
+axs[0].legend()
+
+axs[1].plot([ 0 ], [ 0 ], color='red', linestyle='-', linewidth=1, label='train')
+axs[1].plot([ 0 ], [ 0 ], color='orange', linestyle='-', linewidth=1, label='test')
+axs[1].set_title('Error progress')
+axs[1].set_xlim(0, max_epochs)
+axs[1].set_xlabel('epoch')
+axs[1].set_ylim(0, 2)
+axs[1].set_ylabel('MSE')
+axs[1].grid(True)
+axs[1].legend()
+
+fig.tight_layout()
+fig.show()
+
+xs = np.linspace(-2.5, 2.5, 30)
+ys = model.predict(xs)
+
+train_errors = list()
+test_errors = list()
+print('epoch', 'train_error', 'test_error', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', sep='\t')
+for epoch in range(1, max_epochs+1):
+    train_error = model.get_error(train_x, train_y)
+    train_errors.append(train_error)
+    test_error = model.get_error(test_x, test_y)
+    test_errors.append(test_error)
+    
+    if epoch%100 == 0:
+        coeffs = model.get_params()
+        print(epoch, train_error, test_error, *coeffs, sep='\t')
         
-        train_errors = list()
-        val_errors = list()
-        print('epoch', 'trainerror', 'valerror', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', sep='\t')
-        for epoch in range(1, max_epochs+1):
-            s.run([ step ], { xs: train_x, ts: train_y })
+        ys = model.predict(xs)
+        axs[0].plot(xs, ys, color='magenta', linestyle='-', linewidth=1)
+        axs[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', linewidth=1)
+        axs[1].plot(np.arange(len(test_errors)), test_errors, color='orange', linestyle='-', linewidth=1)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
 
-            [ curr_c0, curr_c1, curr_c2, curr_c3, curr_c4, curr_c5, curr_c6 ] = s.run([ c0, c1, c2, c3, c4, c5, c6 ], { })
-            [ train_error ] = s.run([ error ], { xs: train_x, ts: train_y })
-            [ val_error ]  = s.run([ error ], { xs: val_x,  ts: val_y })
-            train_errors.append(train_error)
-            val_errors.append(val_error)
+    model.optimisation_step(train_x, train_y)
 
-            if epoch%100 == 0:
-                print(epoch, train_error, val_error, round(curr_c0, 3), round(curr_c1, 3), round(curr_c2, 3), round(curr_c3, 3), round(curr_c4, 3), round(curr_c5, 3), round(curr_c6, 3), sep='\t')
-                
-                ax[0].cla()
-                ax[1].cla()
+ys = model.predict(xs)
+test_error = model.get_error(test_x, test_y)
+axs[0].plot(xs, ys, color='red', linestyle='-', linewidth=3)
+axs[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', linewidth=1)
+axs[1].plot(np.arange(len(test_errors)), test_errors, color='orange', linestyle='-', linewidth=1)
+axs[1].annotate('Test error: '+str(test_error), (0,0))
+print()
+print('Test error:', test_error)
+fig.canvas.draw()
+fig.canvas.flush_events()
 
-                all_xs = np.linspace(-2.5, 2.5, 30)
-                [ all_ys ] = s.run([ ys ], { xs: all_xs })
-                ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
-                ax[0].plot(train_x, train_y, color='red', linestyle='', marker='o', markersize=10, label='train')
-                ax[0].plot(val_x, val_y, color='yellow', linestyle='', marker='o', markersize=10, label='val')
-                ax[0].plot(test_x, test_y, color='orange', linestyle='', marker='o', markersize=10, label='test')
-                ax[0].set_xlim(-2.5, 2.5)
-                ax[0].set_xlabel('x')
-                ax[0].set_ylim(-10.0, 10.0)
-                ax[0].set_ylabel('y')
-                ax[0].set_title('Polynomial')
-                ax[0].grid(True)
-                ax[0].legend()
-
-                ax[1].plot(np.arange(len(train_errors)), train_errors, color='red', linestyle='-', label='train')
-                ax[1].plot(np.arange(len(val_errors)), val_errors, color='yellow', linestyle='-', label='val')
-                ax[1].set_xlim(0, max_epochs)
-                ax[1].set_xlabel('epoch')
-                ax[1].set_ylim(0, 1)
-                ax[1].set_ylabel('MSE')
-                ax[1].grid(True)
-                ax[1].set_title('Error progress')
-                ax[1].legend()
-                
-                fig.tight_layout()
-                plt.draw()
-                plt.pause(0.0001)
-
-        [ test_error ]  = s.run([ error ], { xs: test_x,  ts: test_y })
-        ax[1].annotate('Test error: '+str(test_error), (0,0))
-        print()
-        print('Test error:', test_error)
-        
-        fig.show()
+model.close()

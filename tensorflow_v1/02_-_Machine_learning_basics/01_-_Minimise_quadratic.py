@@ -1,58 +1,82 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+import numpy as np
+import matplotlib.pyplot as plt
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+max_epochs = 10 #Train for a maximum of 10 epochs.
 
-learning_rate = 0.2
+class Model(object):
 
-g = tf.Graph()
-with g.as_default():
-    min_x = tf.get_variable('min_x', [], tf.float32, tf.constant_initializer(1))
+    def __init__(self):
+        learning_rate = 0.2 #Use a learning rate of 0.2.
 
-    a = tf.get_variable('a', [], tf.float32, tf.constant_initializer(0))
-    b = tf.get_variable('b', [], tf.float32, tf.constant_initializer(0))
-    c = tf.get_variable('c', [], tf.float32, tf.constant_initializer(1))
-    d = tf.get_variable('d', [], tf.float32, tf.constant_initializer(0))
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            self.min_x = tf.get_variable('min_x', [], tf.float32, tf.constant_initializer(1))
 
-    y = a + b*min_x + c*min_x**2 + d*min_x**3
+            self.y = self.min_x**2
+            
+            [ self.grad ] = tf.gradients([ self.y ], [ self.min_x ])
+            
+            #Gradient descent equation for a single step.
+            self.optimiser_step = tf.assign(self.min_x, self.min_x - learning_rate*self.grad)
+            
+            self.init = tf.global_variables_initializer()
+
+            self.graph.finalize()
+            
+            self.sess = tf.Session()
+
+    def initialise(self):
+        self.sess.run([ self.init ], { })
     
-    [ grad ] = tf.gradients([ y ], [ min_x ])
+    def close(self):
+        self.sess.close()
+    
+    def optimisation_step(self):
+        return self.sess.run([ self.optimiser_step ], { }) #Apply a single optimisation step.
+    
+    def curr_min_x(self):
+        return self.sess.run([ self.min_x, self.y ], { }) #Get the current min_x and its associated y value.
+    
+    def predict(self, x):
+        return self.sess.run([ self.y ], { self.min_x: x })[0]
+    
+###################################
 
-    #Gradient descent equation with a learning rate of 0.2
-    step = tf.assign(min_x, min_x - learning_rate*grad)
+model = Model()
+model.initialise()
 
-    init = tf.global_variables_initializer()
+#Find where each new min_x lands on the graph.
+print('epoch', 'x', 'y', sep='\t')
+min_xs = list()
+min_ys = list()
+for epoch in range(1, max_epochs+1): #Optimize min_x for 10 times (epochs).
+    [ min_x, min_y ] = model.curr_min_x()
+    min_xs.append(min_x)
+    min_ys.append(min_y)
+    print(epoch, min_x, min_y, sep='\t')
 
-    g.finalize()
+    #Optimize min_x a little here.
+    model.optimisation_step()
 
-    with tf.Session() as s:
-        s.run([ init ], { })
+xs = np.linspace(-2.0, 2.0, 20).tolist() #Get all values between -2 and 2 divided into 20 steps.
+ys = [ model.predict(x) for x in xs ]
 
-        #Plot the quadratic equation
-        inputs = np.linspace(-2.0, 2.0, 20) #Get all values between -2 and 2 divided into 20 steps
-        results_y = [ s.run([ y ], { min_x: i })[0] for i in inputs ] # We can still set the x value, called min_x here, to any value we want
-        (fig, ax) = plt.subplots(1, 1)
-        ax.plot(inputs, results_y, color='red', linestyle='-', linewidth=3)
-        ax.set_xlim(-2.0, 2.0)
-        ax.set_xlabel('x')
-        ax.set_ylim(-10.0, 10.0)
-        ax.set_ylabel('y')
-        ax.grid(True)
-        fig.tight_layout()
+(fig, ax) = plt.subplots(1, 1)
 
-        #Find where each new min_x lands on the graph
-        print('epoch', 'x', 'y', sep='\t')
-        min_xs = list()
-        min_ys = list()
-        for epoch in range(1, 10+1): #Optimize min_x for 10 times (epochs)
-            [ curr_x, curr_y ] = s.run([ min_x, y ], {})
-            min_xs.append(curr_x)
-            min_ys.append(curr_y)
-            print(epoch, curr_x, curr_y, sep='\t')
+ax.plot(xs, ys, color='red', linestyle='-', linewidth=3)
+ax.plot(min_xs, min_ys, color='blue', linestyle='', marker='o', markersize=5) #Show a point for each min_x update.
+ax.set_title('Polynomial')
+ax.set_xlim(-2.0, 2.0)
+ax.set_xlabel('x')
+ax.set_ylim(-10.0, 10.0)
+ax.set_ylabel('y')
+ax.grid(True)
 
-            #Optimize min_x a little here
-            s.run([ step ], {})
+fig.tight_layout()
+fig.show()
 
-        ax.plot(min_xs, min_ys, color='blue', marker='o', markersize=10)
-        fig.show()
+model.close()

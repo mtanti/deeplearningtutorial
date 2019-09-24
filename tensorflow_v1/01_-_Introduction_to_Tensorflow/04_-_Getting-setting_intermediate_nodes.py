@@ -1,4 +1,7 @@
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 g = tf.Graph()
 with g.as_default():
@@ -11,5 +14,5 @@ with g.as_default():
     g.finalize()
 
     with tf.Session() as s:
-        [ result ] = s.run([ c ], { b: [1.0, 2.0, 3.0] })
+        [ result ] = s.run([ c ], { b: [ 1.0, 2.0, 3.0 ] })
         print(result)
