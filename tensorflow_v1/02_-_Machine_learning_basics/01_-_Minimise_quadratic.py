@@ -5,7 +5,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
 import matplotlib.pyplot as plt
 
-max_epochs = 10 #Train for a maximum of 10 epochs.
+###################################
 
 class Model(object):
 
@@ -45,6 +45,8 @@ class Model(object):
         return self.sess.run([ self.y ], { self.min_x: x })[0]
     
 ###################################
+
+max_epochs = 10 #Train for a maximum of 10 epochs.
 
 model = Model()
 model.initialise()

@@ -3,6 +3,8 @@ warnings.filterwarnings('ignore')
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+###################################
+
 class Model(object):
 
     def __init__(self, degree):

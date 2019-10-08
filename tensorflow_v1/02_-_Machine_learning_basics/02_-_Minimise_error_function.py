@@ -5,7 +5,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
 import matplotlib.pyplot as plt
 
-max_epochs = 10
+###################################
 
 class Model(object):
 
@@ -53,7 +53,10 @@ class Model(object):
     
     def predict_y2(self, x):
         return self.sess.run([ self.y2 ], { self.min_x: x })[0]
-    
+
+###################################
+
+max_epochs = 10
 
 model = Model()
 model.initialise()

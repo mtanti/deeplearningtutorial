@@ -1,82 +1,113 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+import numpy as np
+import matplotlib.pyplot as plt
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+###################################
 
-g = tf.Graph()
-with g.as_default():
-    xs = tf.placeholder(tf.float32, [None], 'xs')
+class Model(object):
+
+    def __init__(self):
+        graph = tf.Graph()
+        with graph.as_default():
+            self.xs = tf.placeholder(tf.float32, [None], 'xs')
+            
+            #The 4 of the most common activation functions.
+            self.ys_sig = tf.sigmoid(self.xs)
+            self.ys_tanh = tf.tanh(self.xs)
+            self.ys_relu = tf.nn.relu(self.xs)
+            self.ys_softmax = tf.nn.softmax(self.xs)
+            
+            graph.finalize()
+            
+            self.sess = tf.Session()
     
-    #The 3 of the most common activation functions
-    ys_sig = tf.sigmoid(xs)
-    ys_tanh = tf.tanh(xs)
-    ys_relu = tf.nn.relu(xs)
-    ys_softmax = tf.nn.softmax(xs)
+    def predict_sig(self, xs):
+        return self.sess.run([ self.ys_sig ], { self.xs: xs })[0]
     
-    g.finalize()
+    def predict_tanh(self, xs):
+        return self.sess.run([ self.ys_tanh ], { self.xs: xs })[0]
+    
+    def predict_relu(self, xs):
+        return self.sess.run([ self.ys_relu ], { self.xs: xs })[0]
+    
+    def predict_softmax(self, xs):
+        return self.sess.run([ self.ys_softmax ], { self.xs: xs })[0]
 
-    with tf.Session() as s:
-        (fig, ax) = plt.subplots(1, 5)
-        
-        #Sigmoid
-        all_xs = np.linspace(-10, 10, 50)
-        [ all_ys ] = s.run([ ys_sig ], { xs: all_xs })
-        
-        ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
-        ax[0].set_xlim(-10, 10)
-        ax[0].set_xlabel('x')
-        ax[0].set_ylim(-1.1, 1.1)
-        ax[0].set_ylabel('y')
-        ax[0].set_title('sigmoid')
-        ax[0].grid(True)
+###################################
 
-        #Hyperbolic tangent
-        all_xs = np.linspace(-10, 10, 50)
-        [ all_ys ] = s.run([ ys_tanh ], { xs: all_xs })
-        
-        ax[1].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
-        ax[1].set_xlim(-10, 10)
-        ax[1].set_xlabel('x')
-        ax[1].set_ylim(-1.1, 1.1)
-        ax[1].set_title('tanh')
-        ax[1].grid(True)
+model = Model()
 
-        #Rectified linear unit
-        all_xs = np.linspace(-10, 10, 50)
-        [ all_ys ] = s.run([ ys_relu ], { xs: all_xs })
-        
-        ax[2].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3)
-        ax[2].set_xlim(-10, 10)
-        ax[2].set_xlabel('x')
-        ax[2].set_ylim(-1.1, 1.1)
-        ax[2].set_title('ReLU')
-        ax[2].grid(True)
+(fig, axs) = plt.subplots(1, 3)
 
-        #Softmax
-        all_xs = [ -1, 0, 1 ]
-        [ all_ys ] = s.run([ ys_softmax ], { xs: all_xs })
+xs = np.linspace(-10, 10, 50)
 
-        ax[3].bar(all_xs, all_ys)
-        for (x, y) in zip(all_xs, np.round(all_ys, 2)):
-            ax[3].annotate(y, xy=(x, y), xytext=(x, y+5), textcoords='offset points', ha='center', va='bottom')
-        ax[3].set_xlabel('logits')
-        ax[3].set_ylim(-1.1, 1.1)
-        ax[3].set_title('softmax')
-        ax[3].grid(True)
+#Sigmoid
+ys = model.predict_sig(xs)
 
-        #Softmax with added constant to logits (xs)
-        #Adding -1 to every element in the logits will not change the output probabilities.
-        all_xs = [ -1 + -1, 0 + -1, 1 + -1 ]
-        [ all_ys ] = s.run([ ys_softmax ], { xs: all_xs })
+axs[0].plot(xs, ys, color='blue', linestyle='-', linewidth=3)
+axs[0].set_xlim(-10, 10)
+axs[0].set_xlabel('x')
+axs[0].set_ylim(-2, 2)
+axs[0].set_ylabel('y')
+axs[0].set_title('sigmoid(xs)')
+axs[0].grid(True)
 
-        ax[4].bar(all_xs, all_ys)
-        for (x, y) in zip(all_xs, np.round(all_ys, 2)):
-            ax[4].annotate(y, xy=(x, y), xytext=(x, y+5), textcoords='offset points', ha='center', va='bottom')
-        ax[4].set_xlabel('logits')
-        ax[4].set_ylim(-1.1, 1.1)
-        ax[4].set_title('softmax')
-        ax[4].grid(True)
-        
-        fig.tight_layout()
-        fig.show()
+#Hyperbolic tangent
+ys = model.predict_tanh(xs)
+
+axs[1].plot(xs, ys, color='blue', linestyle='-', linewidth=3)
+axs[1].set_xlim(-10, 10)
+axs[1].set_xlabel('x')
+axs[1].set_ylim(-2, 2)
+axs[1].set_title('tanh(xs)')
+axs[1].grid(True)
+
+#Rectified linear unit
+ys = model.predict_relu(xs)
+
+axs[2].plot(xs, ys, color='blue', linestyle='-', linewidth=3)
+axs[2].set_xlim(-10, 10)
+axs[2].set_xlabel('x')
+axs[2].set_ylim(-2, 2)
+axs[2].set_title('ReLU(xs)')
+axs[2].grid(True)
+
+fig.tight_layout()
+fig.show()
+
+###########################
+
+(fig, axs) = plt.subplots(1, 2)
+
+xs = np.array([ -1, 0, 1 ], np.float32)
+
+#Softmax
+ys = model.predict_softmax(xs)
+
+axs[0].bar(xs, ys)
+for (x, y) in zip(xs, np.round(ys, 2)):
+    axs[0].annotate(y, xy=(x, y), xytext=(x, y+5), textcoords='offset points', ha='center', va='bottom')
+axs[0].set_xlabel('logits')
+axs[0].set_ylim(0.0, 1.0)
+axs[0].set_title('softmax(xs)')
+axs[0].grid(True)
+
+#Softmax with added constant to logits (xs).
+#Subtracting 1 from every element in the logits will not change the output probabilities.
+ys = model.predict_softmax(xs - 1)
+
+axs[1].bar(xs, ys)
+for (x, y) in zip(xs, np.round(ys, 2)):
+    axs[1].annotate(y, xy=(x, y), xytext=(x, y+5), textcoords='offset points', ha='center', va='bottom')
+axs[1].set_xlabel('logits')
+axs[1].set_ylim(0.0, 1.0)
+axs[1].set_title('softmax(xs - 1)')
+axs[1].grid(True)
+
+fig.tight_layout()
+fig.show()
+
+model.close()

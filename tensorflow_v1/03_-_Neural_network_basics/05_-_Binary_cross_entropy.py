@@ -1,58 +1,102 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+import numpy as np
+import matplotlib.pyplot as plt
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+###################################
 
-g = tf.Graph()
-with g.as_default():
-    xs = tf.placeholder(tf.float32, [None], 'xs')
+class Model(object):
+
+    def __init__(self):
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            self.xs = tf.placeholder(tf.float32, [None], 'xs')
+            self.ts = tf.placeholder(tf.float32, [None], 'ts')
+            
+            self.ys = tf.sigmoid(self.xs)
+            
+            self.square_error = (self.ys - self.ts)**2
+            
+            binary_cross_entropy_0 = -tf.log(1 - self.ys) #Error function when the target output is 0.
+            binary_cross_entropy_1 = -tf.log(self.ys) #Error function when the target output is 1.
+            self.binary_cross_entropy = binary_cross_entropy_1*self.ts + binary_cross_entropy_0*(1 - self.ts) #General error function for any target output.
+            
+            self.graph.finalize()
+
+            self.sess = tf.Session()
     
-    ys = tf.sigmoid(xs)
-
-    square_error = (ys - 1)**2
-    binary_cross_entropy = -tf.log(ys)
+    def close(self):
+        self.sess.close()
     
-    #The above error functions are used to make the sigmoid output a 1. The following is to make it output a 0:
-    # square_error = (ys - 0)**2
-    # binary_cross_entropy = -tf.log(1 - ys)
+    def get_square_errors(self, xs, ts):
+        return self.sess.run([ self.square_error ], { self.xs: xs, self.ts: ts })[0] #Get a list of errors, one for every value of x.
     
-    #Binary cross entropy can be generalised to depend on what the should be like this:
-    # binary_cross_entropy = -tf.log(ys)*ts + -tf.log(1 - ys)*(1 - ts)
+    def get_binary_cross_entropies(self, xs, ts):
+        return self.sess.run([ self.binary_cross_entropy ], { self.xs: xs, self.ts: ts })[0] #Get a list of errors, one for every value of x.
     
-    g.finalize()
+    def predict(self, xs):
+        return self.sess.run([ self.ys ], { self.xs: xs })[0]
 
-    with tf.Session() as s:
-        (fig, ax) = plt.subplots(1, 2)
-        
-        all_xs = np.linspace(-10, 10, 50)
-        
-        [ all_ys ] = s.run([ ys ], { xs: all_xs })
-        ax[0].plot(all_xs, all_ys, color='red', linestyle=':', linewidth=3, label='sigmoid')
-        
-        [ all_ys ] = s.run([ square_error ], { xs: all_xs })
-        ax[0].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3, label='error')
-        
-        ax[0].set_xlim(-10, 10)
-        ax[0].set_xlabel('x')
-        ax[0].set_ylim(-0.1, 5.0)
-        ax[0].set_ylabel('y')
-        ax[0].set_title('Square error (make y=1)')
-        ax[0].legend()
-        ax[0].grid(True)
+###################################
 
-        [ all_ys ] = s.run([ ys ], { xs: all_xs })
-        ax[1].plot(all_xs, all_ys, color='red', linestyle=':', linewidth=3, label='sigmoid')
-        
-        [ all_ys ] = s.run([ binary_cross_entropy ], { xs: all_xs })
-        ax[1].plot(all_xs, all_ys, color='blue', linestyle='-', linewidth=3, label='error')
-        
-        ax[1].set_xlim(-10, 10)
-        ax[1].set_xlabel('x')
-        ax[1].set_ylim(-0.1, 5.0)
-        ax[1].set_title('Binary cross entropy (make y=1)')
-        ax[1].legend()
-        ax[1].grid(True)
+model = Model()
 
-        fig.tight_layout()
-        fig.show()
+(fig, axs) = plt.subplots(2, 2)
+
+xs = np.linspace(-10, 10, 50)
+ys = model.predict(xs)
+
+ts = np.zeros_like(xs)
+square_error_0 = model.get_square_errors(xs, ts)
+binary_cross_entropy_0 = model.get_binary_cross_entropies(xs, ts)
+
+ts = np.ones_like(xs)
+square_error_1 = model.get_square_errors(xs, ts)
+binary_cross_entropy_1 = model.get_binary_cross_entropies(xs, ts)
+
+axs[0,0].plot(xs, ys, color='red', linestyle='-', linewidth=1, label='sigmoid')
+axs[0,0].plot(xs, square_error_0, color='blue', linestyle=':', linewidth=3, label='square_error')
+axs[0,0].set_xlim(-10, 10)
+axs[0,0].set_xlabel('x')
+axs[0,0].set_ylim(-0.1, 5.0)
+axs[0,0].set_ylabel('y')
+axs[0,0].set_title('Square error (t=0)')
+axs[0,0].legend()
+axs[0,0].grid(True)
+
+axs[0,1].plot(xs, ys, color='red', linestyle='-', linewidth=1, label='sigmoid')
+axs[0,1].plot(xs, binary_cross_entropy_0, color='blue', linestyle=':', linewidth=3, label='binary_cross_entropy')
+axs[0,1].set_xlim(-10, 10)
+axs[0,1].set_xlabel('x')
+axs[0,1].set_ylim(-0.1, 5.0)
+axs[0,1].set_ylabel('y')
+axs[0,1].set_title('Binary cross entropy (t=0)')
+axs[0,1].legend()
+axs[0,1].grid(True)
+
+axs[1,0].plot(xs, ys, color='red', linestyle='-', linewidth=1, label='sigmoid')
+axs[1,0].plot(xs, square_error_1, color='blue', linestyle=':', linewidth=3, label='square_error')
+axs[1,0].set_xlim(-10, 10)
+axs[1,0].set_xlabel('x')
+axs[1,0].set_ylim(-0.1, 5.0)
+axs[1,0].set_ylabel('y')
+axs[1,0].set_title('Square error (t=1)')
+axs[1,0].legend()
+axs[1,0].grid(True)
+
+axs[1,1].plot(xs, ys, color='red', linestyle='-', linewidth=1, label='sigmoid')
+axs[1,1].plot(xs, binary_cross_entropy_1, color='blue', linestyle=':', linewidth=3, label='binary_cross_entropy')
+axs[1,1].set_xlim(-10, 10)
+axs[1,1].set_xlabel('x')
+axs[1,1].set_ylim(-0.1, 5.0)
+axs[1,1].set_ylabel('y')
+axs[1,1].set_title('Binary cross entropy (t=1)')
+axs[1,1].legend()
+axs[1,1].grid(True)
+
+fig.tight_layout()
+fig.show()
+
+model.close()

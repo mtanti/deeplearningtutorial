@@ -3,8 +3,17 @@ warnings.filterwarnings('ignore')
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
-import matplotlib.pyplot as plt
 import skopt
+
+#Use a validation set to evaluate models whilst optimising hyperparameters and use test set to evaluate final model obtained.
+train_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
+train_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
+val_x   = [ -1.75, -0.75, 0.25, 1.25 ]
+val_y   = [ 3.03, 0.64, 0.46, 0.77 ]
+test_x  = [ -1.5, -0.5, 0.5, 1.5 ]
+test_y  = [ 2.38, 0.05, 0.47, 1.67 ]
+
+###################################
 
 num_random_hyperparams = 10 #The number of random hyperparameters to evaluate during the exploration phase.
 num_chosen_hyperparams = 20 #The number of selected hyperparameters to evaluate during the tuning phase.
@@ -30,6 +39,8 @@ opt = skopt.Optimizer(
 #You can leave out 'log-uniform' if you're not looking for exponential values.
 #See https://scikit-optimize.github.io/#skopt.Optimizer for information on the Optimizer class.
 #See https://scikit-optimize.github.io/space/space.m.html for information on each optimisable data type.
+
+###################################
 
 class Model(object):
 
@@ -83,14 +94,10 @@ class Model(object):
     
     def predict(self, xs):
         return self.sess.run([ self.ys ], { self.xs: xs })[0]
-    
-#Use a validation set to evaluate models whilst optimising hyperparameters and use test set to evaluate final model obtained.
-train_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
-train_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
-val_x   = [ -1.75, -0.75, 0.25, 1.25 ]
-val_y   = [ 3.03, 0.64, 0.46, 0.77 ]
-test_x  = [ -1.5, -0.5, 0.5, 1.5 ]
-test_y  = [ 2.38, 0.05, 0.47, 1.67 ]
+
+###################################
+
+degree = 6
 
 print('Starting hyperparameter tuning')
 print()
@@ -117,7 +124,7 @@ for i in range(1, num_random_hyperparams + num_chosen_hyperparams + 1):
 
         #Test the hyperparameters by attempting to get the error.
         try:
-            model = Model(6, learning_rate, momentum, max_epochs)
+            model = Model(degree, learning_rate, momentum, max_epochs)
             model.train(train_x, train_y)
             val_error = model.get_error(val_x, val_y)
             model.close()
@@ -155,7 +162,7 @@ print('Starting actual model training')
 print()
 
 #Finally take the best found hyperparameters and use them.
-model = Model(6, learning_rate, momentum, max_epochs)
+model = Model(degree, learning_rate, momentum, max_epochs)
 model.train(train_x, train_y)
 test_error = model.get_error(test_x, test_y)
 

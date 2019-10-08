@@ -5,7 +5,11 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
 import matplotlib.pyplot as plt
 
-max_epochs = 2000
+#The training set of points to interpolate.
+points_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
+points_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
+
+###################################
 
 class Model(object):
 
@@ -55,13 +59,11 @@ class Model(object):
     
     def predict(self, xs):
         return self.sess.run([ self.ys ], { self.xs: xs })[0]
-    
-model = Model(6) #Create a polynomial of degree 6.
-model.initialise()
 
-#The training set of points to interpolate.
-points_x = [ -2.0, -1.0, 0.0, 1.0, 2.0 ]
-points_y = [ 3.22, 1.64, 0.58, 1.25, 5.07 ]
+###################################
+
+max_epochs = 2000
+degree = 6 #Create a polynomial of degree 6.
 
 #Display figure at the start and update it during training.
 (fig, axs) = plt.subplots(1, 2)
@@ -74,6 +76,7 @@ axs[0].set_ylim(-10.0, 10.0)
 axs[0].set_ylabel('y')
 axs[0].grid(True)
 
+[ error_plot ] = axs[1].plot([], [], color='red', linestyle='-', linewidth=1)
 axs[1].set_title('Error progress')
 axs[1].set_xlim(0, max_epochs)
 axs[1].set_xlabel('epoch')
@@ -86,11 +89,10 @@ fig.show()
 
 xs = np.linspace(-2.5, 2.5, 30)
 
-#Draw the first polynomial before training has started in blue.
-ys = model.predict(xs)
-axs[0].plot(xs, ys, color='blue', linestyle='-', linewidth=3)
-fig.canvas.draw() #Update figure.
-fig.canvas.flush_events()
+###################################
+
+model = Model(degree)
+model.initialise()
 
 errors = list()
 print('epoch', 'error', 'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', sep='\t')
@@ -104,7 +106,7 @@ for epoch in range(1, max_epochs+1):
         
         ys = model.predict(xs)
         axs[0].plot(xs, ys, color='magenta', linestyle='-', linewidth=1)
-        axs[1].plot(np.arange(len(errors)), errors, color='red', linestyle='-', linewidth=1)
+        error_plot.set_data(np.arange(len(errors)), errors)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -113,7 +115,7 @@ for epoch in range(1, max_epochs+1):
 #Plot the final polynomial found in red.
 ys = model.predict(xs)
 axs[0].plot(xs, ys, color='red', linestyle='-', linewidth=3)
-axs[1].plot(np.arange(len(errors)), errors, color='red', linestyle='-', linewidth=1)
+error_plot.set_data(np.arange(len(errors)), errors)
 fig.canvas.draw()
 fig.canvas.flush_events()
 
