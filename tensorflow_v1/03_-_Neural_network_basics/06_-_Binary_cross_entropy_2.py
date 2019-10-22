@@ -24,11 +24,6 @@ class Model(object):
             
             self.params = []
 
-            W = tf.get_variable('W', [2, 1], tf.float32, tf.zeros_initializer())
-            b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
-            self.params.extend([ W, b ])
-            self.ys = tf.sigmoid(tf.matmul(self.xs, W) + b)
-            
             with tf.variable_scope('hidden'):
                 W = tf.get_variable('W', [2, hidden_layer_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [hidden_layer_size], tf.float32, tf.zeros_initializer())
