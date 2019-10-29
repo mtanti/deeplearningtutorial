@@ -25,11 +25,6 @@ class Model(object):
             
             self.params = []
 
-            W = tf.get_variable('W', [2, 1], tf.float32, tf.zeros_initializer())
-            b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
-            self.params.extend([ W, b ])
-            self.ys = tf.sigmoid(tf.matmul(self.xs, W) + b)
-            
             with tf.variable_scope('hidden'):
                 W = tf.get_variable('W', [2, hidden_layer_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [hidden_layer_size], tf.float32, tf.zeros_initializer())
@@ -86,7 +81,7 @@ output_imgs = list()
 index = 0
 for row in range(2):
     for col in range(2):
-        output_img = axs1[row,col].matshow(np.full_like(x0s, 0.5), vmin=0.0, vmax=1.0, extent=(0.0,1.0,0.0,1.0), cmap='bwr')
+        output_img = axs1[row,col].matshow(np.full_like(x0s, 0.5), vmin=0.0, vmax=1.0, extent=(0.0,1.0,1.0,0.0), cmap='bwr')
         output_imgs.append(output_img)
         axs1[row,col].set_xlabel('x0')
         axs1[row,col].set_ylabel('x1')
@@ -137,9 +132,9 @@ for epoch in range(1, max_epochs+1):
     model.optimisation_step(train_x, train_y)
 
 print()
-print('00:', np.round(model.predict([[0,0]])[0], 3))
-print('01:', np.round(model.predict([[0,1]])[0], 3))
-print('10:', np.round(model.predict([[1,0]])[0], 3))
-print('11:', np.round(model.predict([[1,1]])[0], 3))
+print('00:', np.round(model.predict([[0,0]])[0], 2))
+print('01:', np.round(model.predict([[0,1]])[0], 2))
+print('10:', np.round(model.predict([[1,0]])[0], 2))
+print('11:', np.round(model.predict([[1,1]])[0], 2))
 
 model.close()

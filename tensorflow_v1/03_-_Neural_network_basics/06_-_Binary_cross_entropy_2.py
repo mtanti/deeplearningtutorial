@@ -75,7 +75,7 @@ max_epochs = 2000
 (x0s, x1s) = np.meshgrid(np.linspace(0.0, 1.0, 50), np.linspace(0.0, 1.0, 50))
 xs = np.stack([ np.reshape(x0s, [50*50]), np.reshape(x1s, [50*50]) ], axis=1)
 
-output_img = axs[0].matshow(np.full_like(x0s, 0.5), vmin=0.0, vmax=1.0, extent=(0.0,1.0,0.0,1.0), cmap='bwr')
+output_img = axs[0].matshow(np.full_like(x0s, 0.5), vmin=0.0, vmax=1.0, extent=(0.0,1.0,1.0,0.0), cmap='bwr')
 axs[0].set_xlabel('x0')
 axs[0].set_ylabel('x1')
 axs[0].set_title('Output')
@@ -116,5 +116,11 @@ for epoch in range(1, max_epochs+1):
         fig.canvas.flush_events()
     
     model.optimisation_step(train_x, train_y)
+
+print()
+print('00:', np.round(model.predict([[0,0]])[0], 2))
+print('01:', np.round(model.predict([[0,1]])[0], 2))
+print('10:', np.round(model.predict([[1,0]])[0], 2))
+print('11:', np.round(model.predict([[1,1]])[0], 2))
 
 model.close()
