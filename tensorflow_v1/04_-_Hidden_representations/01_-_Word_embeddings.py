@@ -54,7 +54,7 @@ class Model(object):
             self.params = []
             
             with tf.variable_scope('hidden'):
-                W = tf.get_variable('W', [vocab_size, hidden_layer_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+                W = tf.get_variable('W', [2*vocab_size, hidden_layer_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [hidden_layer_size], tf.float32, tf.zeros_initializer())
                 self.params.extend([ W, b ])
                 
@@ -107,7 +107,7 @@ max_epochs = 1000
 
 (fig, ax) = plt.subplots(1, 1)
 
-[ train_error_plot ] = axs[1].plot([], [], color='red', linestyle='-', linewidth=1, label='train')
+[ train_error_plot ] = ax.plot([], [], color='red', linestyle='-', linewidth=1, label='train')
 ax.set_xlim(0, max_epochs)
 ax.set_xlabel('epoch')
 ax.set_ylim(0.0, 2.0)

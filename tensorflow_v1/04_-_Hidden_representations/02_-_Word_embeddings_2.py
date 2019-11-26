@@ -42,7 +42,7 @@ class Model(object):
             with tf.variable_scope('embeddings'):
                 #An embedding matrix is a matrix with a row vector for each unique word (gets optimised with the rest of the neural network).
                 self.embedding_matrix = tf.get_variable('embedding_matrix', [ vocab_size, embed_size ], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
-                self.params.extend([ embedding_matrix ])
+                self.params.extend([ self.embedding_matrix ])
 
                 embedded_lefts  = tf.nn.embedding_lookup(self.embedding_matrix, self.lefts)
                 embedded_rights = tf.nn.embedding_lookup(self.embedding_matrix, self.rights)
