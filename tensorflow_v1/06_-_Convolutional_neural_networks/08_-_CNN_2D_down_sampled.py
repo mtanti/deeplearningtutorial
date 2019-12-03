@@ -92,7 +92,7 @@ lines = [
 bin_images = np.array([
         [
             [
-                [ 1.0 ] if px == '#' else [ 0 ]
+                [ 1.0 ] if px == '#' else [ 0.0 ]
                 for px in row
             ] for row in img
         ] for img in char_images
@@ -134,9 +134,9 @@ class Model(object):
                 self.downsampled_hs = tf.nn.max_pool(self.conv_hs, [1,downsample_width,downsample_height,1], [1,downsample_width,downsample_height,1], 'VALID')
 
                 #Number of slides changes due to downsampling.
-                num_slides_x_per_img = (image_width - kernel_width + 1)//downsample_width
-                num_slides_y_per_img = (image_height - kernel_height + 1)//downsample_height
-                vec_size_per_img = (num_slides_x_per_img*num_slides_y_per_img)*kernel_size
+                num_conv_rows = (image_height - kernel_height + 1)//downsample_height
+                num_conv_cols = (image_width - kernel_width + 1)//downsample_width
+                vec_size_per_img = (num_conv_rows*num_conv_cols)*kernel_size
                 self.flat_hs = tf.reshape(self.downsampled_hs, [batch_size, vec_size_per_img])
                 
             with tf.variable_scope('output'):

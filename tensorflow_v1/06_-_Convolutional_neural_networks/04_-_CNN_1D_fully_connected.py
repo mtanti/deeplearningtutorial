@@ -57,8 +57,9 @@ class Model(object):
                 self.params.extend([ W, b ])
                 self.conv_hs = tf.sigmoid(tf.nn.conv1d(embedded, W, 1, 'VALID') + b)
 
-                num_slides_per_sent = sent_size - kernel_width + 1 #Number of 'slides' the kernel will make over the sentence.
-                vec_size_per_sent = num_slides_per_sent*kernel_size
+                #The number of convolutions or 'slides' the kernel will make over the sentence need to be known prior to running the graph because they need to be used to set the weight matrix size in the output layer.
+                num_convs = sent_size - kernel_width + 1
+                vec_size_per_sent = num_convs*kernel_size
                 self.flat_hs = tf.reshape(self.conv_hs, [ batch_size, vec_size_per_sent ])
 
             with tf.variable_scope('output'):

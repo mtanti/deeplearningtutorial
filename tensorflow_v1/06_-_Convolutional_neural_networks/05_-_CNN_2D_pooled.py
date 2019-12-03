@@ -92,7 +92,7 @@ lines = [
 bin_images = np.array([
         [
             [
-                [ 1.0 ] if px == '#' else [ 0 ] #Make the image pixels consist of single element vectors.
+                [ 1.0 ] if px == '#' else [ 0.0 ] #Make the image pixels consist of single element vectors.
                 for px in row
             ] for row in img
         ] for img in char_images
@@ -136,9 +136,9 @@ class Model(object):
                 self.conv_hs = tf.sigmoid(tf.nn.conv2d(self.images, W, [1,1,1,1], 'VALID') + b)
 
                 #Perform max pooling but first turn the resultant grid of vectors into a sequence in order to become a single vector after pooling.
-                num_conv_y = tf.shape(self.conv_hs)[1]
-                num_conv_x = tf.shape(self.conv_hs)[2]
-                flat_hs = tf.reshape(self.conv_hs, [ batch_size, num_conv_y*num_conv_x, kernel_size ])
+                num_conv_rows = tf.shape(self.conv_hs)[1]
+                num_conv_cols = tf.shape(self.conv_hs)[2]
+                flat_hs = tf.reshape(self.conv_hs, [ batch_size, num_conv_rows*num_conv_cols, kernel_size ])
                 self.pool_hs = tf.reduce_max(flat_hs, axis=1) #Max pooling
 
             with tf.variable_scope('output'):

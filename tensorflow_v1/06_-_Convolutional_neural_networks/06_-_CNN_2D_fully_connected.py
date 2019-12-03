@@ -92,7 +92,7 @@ lines = [
 bin_images = np.array([
         [
             [
-                [ 1.0 ] if px == '#' else [ 0 ]
+                [ 1.0 ] if px == '#' else [ 0.0 ]
                 for px in row
             ] for row in img
         ] for img in char_images
@@ -127,10 +127,11 @@ class Model(object):
                 b = tf.get_variable('b', [kernel_size], tf.float32, tf.zeros_initializer())
                 self.params.extend([ W, b ])
                 self.conv_hs = tf.sigmoid(tf.nn.conv2d(self.images, W, [1,1,1,1], 'VALID') + b)
-
-                num_slides_x_per_img = image_width - kernel_width + 1
-                num_slides_y_per_img = image_height - kernel_height + 1
-                vec_size_per_img = (num_slides_x_per_img*num_slides_y_per_img)*kernel_size
+                
+                #The number of rows and columns resulting from the convolution need to be known prior to running the graph because they need to be used to set the weight matrix size in the output layer.
+                num_conv_rows = image_height - kernel_height + 1
+                num_conv_cols = image_width - kernel_width + 1
+                vec_size_per_img = (num_conv_rows*num_conv_cols)*kernel_size
                 self.flat_hs = tf.reshape(self.conv_hs, [batch_size, vec_size_per_img])
 
             with tf.variable_scope('output'):

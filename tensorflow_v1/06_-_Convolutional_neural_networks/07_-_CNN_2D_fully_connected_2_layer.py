@@ -92,7 +92,7 @@ lines = [
 bin_images = np.array([
         [
             [
-                [ 1.0 ] if px == '#' else [ 0 ]
+                [ 1.0 ] if px == '#' else [ 0.0 ]
                 for px in row
             ] for row in img
         ] for img in char_images
@@ -131,8 +131,8 @@ class Model(object):
                 self.params.extend([ W, b ])
                 self.conv_hs1 = tf.sigmoid(tf.nn.conv2d(self.images, W, [1,1,1,1], 'VALID') + b)
 
-                num_slides_x_per_img = image_width - kernel1_width + 1
-                num_slides_y_per_img = image_height - kernel1_height + 1
+                num_conv_rows = image_width - kernel1_width + 1
+                num_conv_cols = image_height - kernel1_height + 1
 
             with tf.variable_scope('hidden2'):
                 W = tf.get_variable('W', [kernel2_height, kernel2_width, kernel1_size, kernel2_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
@@ -140,9 +140,9 @@ class Model(object):
                 self.params.extend([ W, b ])
                 self.conv_hs2 = tf.sigmoid(tf.nn.conv2d(self.conv_hs1, W, [1,1,1,1], 'VALID') + b)
 
-                num_slides_x_per_img = num_slides_x_per_img - kernel2_width + 1
-                num_slides_y_per_img = num_slides_y_per_img - kernel2_height + 1
-                vec_size_per_img = (num_slides_x_per_img*num_slides_y_per_img)*kernel2_size
+                num_conv_rows = num_conv_rows - kernel2_height + 1
+                num_conv_cols = num_conv_cols - kernel2_width + 1
+                vec_size_per_img = (num_conv_rows*num_conv_cols)*kernel2_size
                 self.flat_hs2 = tf.reshape(self.conv_hs2, [batch_size, vec_size_per_img])
 
             with tf.variable_scope('output'):

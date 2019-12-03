@@ -1,9 +1,10 @@
-import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+import numpy as np
 
-tf.logging.set_verbosity(tf.logging.ERROR)
-
-
+###################################
 class Cell(tf.nn.rnn_cell.RNNCell):
 
     def __init__(self):
@@ -11,64 +12,67 @@ class Cell(tf.nn.rnn_cell.RNNCell):
 
     @property
     def state_size(self):
-        return (2, 2) #Specify the vector size of each vector included in the state
+        return (2, 2) #Vector size of each vector being returned.
 
     @property
     def output_size(self):
-        return (2, 2) #Specify the vector size of each vector included in the outputs
+        return (2, 2) #Vector size of each vector being returned.
 
-    def build(self, inputs_shape):
+    def build(self, input_shape):
         self.built = True
 
     def call(self, x, curr_state):
         (curr_state1, curr_state2) = curr_state
+
         new_state1 = curr_state1 + x
-        new_state2 = curr_state2 + new_state1
         new_output1 = new_state1
+        
+        new_state2 = curr_state2 + new_state1
         new_output2 = new_state2
-        return ((new_output1, new_output2), (new_state1, new_state2)) #Return all the vectors in a tuple
-
-
-g = tf.Graph()
-with g.as_default():
-    #You can use separate initial states for each state vector
-    init_state1 = tf.constant(
-        [
-            [ 0, 0 ],
-        ], tf.float32, [1, 2], 'init1'
-    )
-    init_state2 = tf.constant(
-        [
-            [ 0, 0 ],
-        ], tf.float32, [1, 2], 'init2'
-    )
-    init_state = (init_state1, init_state2) #Put initial states in a tuple
-
-    seqs = tf.constant(
-        [
-            [ [1, 1], [2, 2], [3, 3] ],
-        ], tf.float32, [1, 3, 2], 'seqs'
-    )
-    cell = Cell()
-    (outputs, state) = tf.nn.dynamic_rnn(cell, seqs, initial_state=init_state)
-    ((outputs1, outputs2), (state1, state2)) = (outputs, state) #You will receive a separate matrix for each output and a separate vector for each state
-
-    g.finalize()
-
-    with tf.Session() as s:
-        [ curr_outputs1, curr_outputs2, curr_state1, curr_state2 ] = s.run([ outputs1, outputs2, state1, state2 ], { })
-
-        print('outputs1:')
-        print(curr_outputs1)
-        print()
         
-        print('outputs2:')
-        print(curr_outputs2)
-        print()
+        return ((new_output1, new_output2), (new_state1, new_state2)) #Return all the vectors in a tuple.
 
-        print('state1:')
-        print(curr_state1)
-        print()
+###################################
+class Model(object):
+    
+    def __init__(self):
+        num_inputs = 1
         
-        print('state2:')
-        print(curr_state2)
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            #Separate initial states for each vector.
+            init_state1 = tf.constant([ 0, 0 ], tf.float32, [2], 'init')
+            init_state2 = tf.constant([ 0, 0 ], tf.float32, [2], 'init')
+
+            batch_init_states1 = tf.tile(tf.reshape(init_state1, [1, 2]), [ num_inputs, 1 ])
+            batch_init_states2 = tf.tile(tf.reshape(init_state2, [1, 2]), [ num_inputs, 1 ])
+
+            batch_init_states = (batch_init_states1, batch_init_states2) #Tuple of initial states.
+
+            seqs = tf.constant(
+                    [
+                        [ [1, 1], [2, 2], [3, 3] ],
+                    ], tf.float32, [1, 3, 2], 'seqs'
+                )
+            cell = Cell()
+            ((self.outputs1, self.outputs2), (self.state1, self.state2)) = tf.nn.dynamic_rnn(cell, seqs, initial_state=batch_init_states)
+
+            self.graph.finalize()
+
+            self.sess = tf.Session()
+
+    def close(self):
+        self.sess.close()
+    
+    def output(self):
+        return self.sess.run([ self.outputs1, self.outputs2, self.state1, self.state2 ], {  })
+    
+###################################
+model = Model()
+[ outputs1, outputs2, state1, state2 ] = model.output()
+print('outputs1:')
+print(outputs1)
+print('outputs2:')
+print(outputs2)
+print('state1:', state1)
+print('state2:', state2)
