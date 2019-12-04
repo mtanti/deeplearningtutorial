@@ -54,6 +54,7 @@ class Model(object):
                         [ [1, 1], [2, 2], [3, 3] ],
                     ], tf.float32, [1, 3, 2], 'seqs'
                 )
+            
             cell = Cell()
             ((self.outputs1, self.outputs2), (self.state1, self.state2)) = tf.nn.dynamic_rnn(cell, seqs, initial_state=batch_init_states)
 

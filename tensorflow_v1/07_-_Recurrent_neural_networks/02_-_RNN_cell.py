@@ -56,7 +56,8 @@ class Model(object):
 
             #Using the RNN cell for a single input-state combination.
             input_vec = tf.constant([1, 1], tf.float32, [2])
-            c = Cell()
+            
+            cell = Cell()
             (self.output_cell, self.state_cell) = c(input_vec, batch_init_states) #Just treat the cell as if it is a function.
 
             #Using the RNN cell to process a whole sequence of inputs.
@@ -65,6 +66,7 @@ class Model(object):
                         [ [1, 1], [2, 2], [3, 3] ],
                     ], tf.float32, [1, 3, 2], 'seqs'
                 )
+            
             cell = Cell()
             #Note how the input shape given to the cell's call function is [1,2], i.e. a single item from every sequence in the batch.
             (self.outputs, self.state) = tf.nn.dynamic_rnn(cell, seqs, initial_state=batch_init_states)

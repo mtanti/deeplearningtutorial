@@ -144,6 +144,8 @@ class Model(object):
             with tf.variable_scope('output'):
                 W = tf.get_variable('W', [kernel_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
+                self.params.extend([ W, b ])
+                
                 logits = tf.matmul(self.pool_hs, W) + b
                 self.probs = tf.sigmoid(logits)
             

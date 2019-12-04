@@ -131,8 +131,8 @@ class Model(object):
                 self.params.extend([ W, b ])
                 self.conv_hs1 = tf.sigmoid(tf.nn.conv2d(self.images, W, [1,1,1,1], 'VALID') + b)
 
-                num_conv_rows = image_width - kernel1_width + 1
-                num_conv_cols = image_height - kernel1_height + 1
+                num_conv_rows = image_height - kernel1_height + 1
+                num_conv_cols = image_width - kernel1_width + 1
 
             with tf.variable_scope('hidden2'):
                 W = tf.get_variable('W', [kernel2_height, kernel2_width, kernel1_size, kernel2_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
@@ -148,6 +148,8 @@ class Model(object):
             with tf.variable_scope('output'):
                 W = tf.get_variable('W', [vec_size_per_img, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
+                self.params.extend([ W, b ])
+                
                 logits = tf.matmul(self.flat_hs2, W) + b
                 self.probs = tf.sigmoid(logits)
             
