@@ -16,7 +16,7 @@ sent_lens = [
         3,
         4,
         4,
-    ] #Alternatively, you can replace this list with [ len(sent) for sent in tokens ]
+    ]
 sentiments = [
         [ 1 ],
         [ 0 ],
@@ -34,36 +34,6 @@ token_prefixes = sorted({ tuple(sent[:i]) for sent in token_sents for i in range
 prefix_lens = [ len(prefix) for prefix in token_prefixes ]
 max_prefix_len = max(prefix_lens)
 index_prefixes = [ [ token2index[token] for token in prefix ] + [ 0 for _ in range(max_prefix_len - len(prefix)) ] for prefix in token_prefixes ]
-
-###################################
-
-class Cell(tf.nn.rnn_cell.RNNCell):
-
-    def __init__(self, embed_size, state_size, init_stddev):
-        super().__init__()
-        self.W = None
-        self.b = None
-        self._embed_size = embed_size
-        self._state_size = state_size
-        self._init_stddev = init_stddev
-
-    @property
-    def state_size(self):
-        return self._state_size
-
-    @property
-    def output_size(self):
-        return self._state_size
-
-    def build(self, inputs_shape):
-        self.W = self.add_variable('W', [self._state_size+self._embed_size, self._state_size], tf.float32, tf.random_normal_initializer(stddev=self._init_stddev))
-        self.b = self.add_variable('b', [self._state_size], tf.float32, tf.zeros_initializer())
-        self.built = True
-        
-    def call(self, x, curr_state):
-        layer_input = tf.concat([ curr_state, x ], axis=1)
-        new_state = tf.tanh(tf.matmul(layer_input, self.W) + self.b)
-        return (new_state, new_state) #Return the state as both output and state.
 
 ###################################
 
@@ -94,9 +64,33 @@ class Model(object):
                 init_state = tf.get_variable('init_state', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 batch_init = tf.tile(tf.reshape(init_state, [1, state_size]), [batch_size, 1])
                 
-                cell = Cell(embed_size, state_size, init_stddev)
-                (_, self.states) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init) #Pass sentence lengths here.
-                self.params.extend([ cell.W, cell.b ])
+                cell = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+                (_, self.states) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init)
+                [ W, b ] = cell.weights #cell.weights gives a list of the parameters in the cell object (only works after using the cell in the dynamic_rnn function).
+                self.rnn_initialisers = [ #You cannot change how the weights within a cell are initialised so it has to be done manually within the initialise() method below.
+                        tf.assign(W, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                        tf.assign(b, tf.zeros([state_size]))
+                    ]
+                self.params.extend([ W, b ])
+                
+                '''
+                For other RNN cells:
+                    GRU parameters
+                        [ W_g, b_g, W_s, b_s ] = cell.weights
+                        self.rnn_initialisers = [
+                                tf.assign(W_g, tf.random_normal([state_size+embed_size, 2*state_size], stddev=init_stddev)),
+                                tf.assign(b_g, tf.zeros([2*state_size]))
+                                tf.assign(W_s, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                                tf.assign(b_s, tf.zeros([state_size]))
+                            ]
+                    
+                    LSTM parameters
+                        [ W, b ] = cell.weights
+                        self.rnn_initialisers = [
+                                tf.assign(W, tf.random_normal([state_size+embed_size, 4*state_size], stddev=init_stddev)),
+                                tf.assign(b, tf.zeros([4*state_size]))
+                            ]
+                '''
 
             with tf.variable_scope('output'):
                 W = tf.get_variable('W', [state_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
@@ -117,7 +111,8 @@ class Model(object):
             self.sess = tf.Session()
     
     def initialise(self):
-        return self.sess.run([ self.init ], { })
+        self.sess.run([ self.init ], { })
+        self.sess.run(self.rnn_initialisers, { }) #Manually initialise the RNN cell weights by overwriting them after initialisation.
     
     def close(self):
         self.sess.close()

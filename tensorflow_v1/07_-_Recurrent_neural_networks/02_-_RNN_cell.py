@@ -58,7 +58,7 @@ class Model(object):
             input_vec = tf.constant([1, 1], tf.float32, [2])
             
             cell = Cell()
-            (self.output_cell, self.state_cell) = c(input_vec, batch_init_states) #Just treat the cell as if it is a function.
+            (self.output_cell, self.state_cell) = cell(input_vec, batch_init_states) #Just treat the cell as if it is a function.
 
             #Using the RNN cell to process a whole sequence of inputs.
             seqs = tf.constant(

@@ -55,8 +55,8 @@ class Model(object):
                 return (new_state, new_state)
             '''
             
-            #Long short-term memory with a layer size of 2
-            #LSTMs use two separate initial states which means that you need to initialise both states and also have two final states (although the 'h' state is what is usually used as a final state)
+            #Long short-term memory with a layer size of 2.
+            #LSTMs use two separate initial states which means that you need to initialise both states and also have two final states (although the 'h' state is what is usually used as a final state).
             lstm_cell = tf.nn.rnn_cell.LSTMCell(2)
             (self.lstm_outputs, lstm_state) = tf.nn.dynamic_rnn(lstm_cell, seqs, sequence_length=seq_len, initial_state=tf.contrib.rnn.LSTMStateTuple(h=batch_init_states, c=batch_init_states))
             self.lstm_state_h = lstm_state.h

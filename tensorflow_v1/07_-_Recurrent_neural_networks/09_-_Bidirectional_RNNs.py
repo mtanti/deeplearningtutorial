@@ -59,8 +59,11 @@ class Model(object):
                     ], tf.int32, [1]
                 )
             
-            init_state_fw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_fw')
-            init_state_bw = tf.constant([[0, 0]], tf.float32, [1, 2], 'init_state_bw')
+            init_state_fw = tf.constant([0, 0], tf.float32, [embed_size], 'init_state_fw')
+            init_state_bw = tf.constant([0, 0], tf.float32, [embed_size], 'init_state_bw')
+            
+            batch_init_states_fw = tf.tile(tf.reshape(init_state_fw, [1, embed_size]), [ num_inputs, 1 ])
+            batch_init_states_bw = tf.tile(tf.reshape(init_state_bw, [1, embed_size]), [ num_inputs, 1 ])
 
             cell_fw = Cell(embed_size, state_size, init_stddev)
             cell_bw = Cell(embed_size, state_size, init_stddev)

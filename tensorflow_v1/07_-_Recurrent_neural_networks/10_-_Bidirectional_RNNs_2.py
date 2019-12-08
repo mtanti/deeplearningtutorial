@@ -16,7 +16,7 @@ sent_lens = [
         3,
         4,
         4,
-    ] #Alternatively, you can replace this list with [ len(sent) for sent in tokens ]
+    ]
 sentiments = [
         [ 1 ],
         [ 0 ],
@@ -34,36 +34,6 @@ token_prefixes = sorted({ tuple(sent[:i]) for sent in token_sents for i in range
 prefix_lens = [ len(prefix) for prefix in token_prefixes ]
 max_prefix_len = max(prefix_lens)
 index_prefixes = [ [ token2index[token] for token in prefix ] + [ 0 for _ in range(max_prefix_len - len(prefix)) ] for prefix in token_prefixes ]
-
-###################################
-
-class Cell(tf.nn.rnn_cell.RNNCell):
-
-    def __init__(self, embed_size, state_size, init_stddev):
-        super().__init__()
-        self.W = None
-        self.b = None
-        self._embed_size = embed_size
-        self._state_size = state_size
-        self._init_stddev = init_stddev
-
-    @property
-    def state_size(self):
-        return self._state_size
-
-    @property
-    def output_size(self):
-        return self._state_size
-
-    def build(self, inputs_shape):
-        self.W = self.add_variable('W', [self._state_size+self._embed_size, self._state_size], tf.float32, tf.random_normal_initializer(stddev=self._init_stddev))
-        self.b = self.add_variable('b', [self._state_size], tf.float32, tf.zeros_initializer())
-        self.built = True
-        
-    def call(self, x, curr_state):
-        layer_input = tf.concat([ curr_state, x ], axis=1)
-        new_state = tf.tanh(tf.matmul(layer_input, self.W) + self.b)
-        return (new_state, new_state) #Return the state as both output and state.
 
 ###################################
 
@@ -91,15 +61,30 @@ class Model(object):
                 embedded = tf.nn.embedding_lookup(self.embedding_matrix, self.sents)
 
             with tf.variable_scope('hidden'):
-                init_state = tf.get_variable('init_state', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
-                batch_init = tf.tile(tf.reshape(init_state, [1, state_size]), [batch_size, 1])
+                init_state_fw = tf.get_variable('init_state_fw', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+                init_state_bw = tf.get_variable('init_state_bw', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 
-                cell = Cell(embed_size, state_size, init_stddev)
-                (_, self.states) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init) #Pass sentence lengths here.
-                self.params.extend([ cell.W, cell.b ])
+                batch_init_fw = tf.tile(tf.reshape(init_state_fw, [1, state_size]), [batch_size, 1])
+                batch_init_bw = tf.tile(tf.reshape(init_state_bw, [1, state_size]), [batch_size, 1])
+                
+                cell_fw = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+                cell_bw = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+                
+                (_, (self.state_fw, self.state_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, embedded, sequence_length=self.sent_lens, initial_state_fw=batch_init_fw, initial_state_bw=batch_init_bw)
+                self.states = tf.concat([ self.state_fw, self.state_bw ], axis=1)
+                [ W_fw, b_fw ] = cell_fw.weights
+                [ W_bw, b_bw ] = cell_bw.weights
+                self.rnn_initialisers = [
+                        tf.assign(W_fw, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                        tf.assign(b_bw, tf.zeros([state_size])),
+                        
+                        tf.assign(W_fw, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                        tf.assign(b_bw, tf.zeros([state_size]))
+                    ]
+                self.params.extend([ W_fw, b_fw, W_bw, b_bw ])
 
             with tf.variable_scope('output'):
-                W = tf.get_variable('W', [state_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+                W = tf.get_variable('W', [2*state_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
                 self.params.extend([ W, b ])
                 
@@ -117,7 +102,8 @@ class Model(object):
             self.sess = tf.Session()
     
     def initialise(self):
-        return self.sess.run([ self.init ], { })
+        self.sess.run([ self.init ], { })
+        self.sess.run(self.rnn_initialisers, { })
     
     def close(self):
         self.sess.close()
@@ -141,44 +127,16 @@ class Model(object):
 
 max_epochs = 2000
 
-(fig, axs) = plt.subplots(1, 3)
+(fig, ax) = plt.subplots(1, )
 
-prefix_plots = list()
-prefix_texts = list()
-for token_prefix in token_prefixes:
-    [ prefix_plot ] = axs[0].plot([ 0 ], [ 0 ], linestyle='', marker='o', markersize=10)
-    prefix_plots.append(prefix_plot)
-    prefix_text = axs[0].text(0, 0, ' '.join(token_prefix), fontdict={ 'fontsize': 8 })
-    prefix_texts.append(prefix_text)
-axs[0].set_xlim(-1.0, 1.0)
-axs[0].set_xlabel('d0')
-axs[0].set_ylim(-1.0, 1.0)
-axs[0].set_ylabel('d1')
-axs[0].grid(True)
-axs[0].set_title('Prefixes')
-
-sent_plots = list()
-sent_texts = list()
-for token_sent in token_sents:
-    [ sent_plot ] = axs[1].plot([ 0 ], [ 0 ], linestyle='', marker='o', markersize=10)
-    sent_plots.append(sent_plot)
-    sent_text = axs[1].text(0, 0, ' '.join(token_sent), fontdict={ 'fontsize': 8 })
-    sent_texts.append(sent_text)
-axs[1].set_xlim(-1.0, 1.0)
-axs[1].set_xlabel('d0')
-axs[1].set_ylim(-1.0, 1.0)
-axs[1].set_ylabel('d1')
-axs[1].grid(True)
-axs[1].set_title('Sents')
-
-[ train_error_plot ] = axs[2].plot([], [], color='red', linestyle='-', linewidth=1, label='train')
-axs[2].set_xlim(0, max_epochs)
-axs[2].set_xlabel('epoch')
-axs[2].set_ylim(0.0, 2.0)
-axs[2].set_ylabel('XE')
-axs[2].grid(True)
-axs[2].set_title('Error progress')
-axs[2].legend()
+[ train_error_plot ] = ax.plot([], [], color='red', linestyle='-', linewidth=1, label='train')
+ax.set_xlim(0, max_epochs)
+ax.set_xlabel('epoch')
+ax.set_ylim(0.0, 2.0)
+ax.set_ylabel('XE')
+ax.grid(True)
+ax.set_title('Error progress')
+ax.legend()
 
 fig.tight_layout()
 fig.show()
@@ -196,16 +154,6 @@ for epoch in range(1, max_epochs+1):
     
     if epoch%100 == 0:
         print(epoch, train_error, sep='\t')
-
-        states = model.get_state(index_prefixes, prefix_lens)
-        for (prefix_plot, prefix_text, state) in zip(prefix_plots, prefix_texts, states):
-            prefix_plot.set_data([ state[0] ], [ state[1] ])
-            prefix_text.set_position( (state[0], state[1]) )
-
-        states = model.get_state(index_sents, sent_lens)
-        for (sent_plot, sent_text, state) in zip(sent_plots, sent_texts, states.tolist()):
-            sent_plot.set_data([ state[0] ], [ state[1] ])
-            sent_text.set_position( (state[0], state[1]) )
         train_error_plot.set_data(np.arange(len(train_errors)), train_errors)
         plt.draw()
         fig.canvas.flush_events()
@@ -213,17 +161,6 @@ for epoch in range(1, max_epochs+1):
     model.optimisation_step(index_sents, sent_lens, sentiments)
 
 print()
-print('prefix', 'vector', sep='\t')
-states = model.get_state(index_prefixes, prefix_lens)
-for (token_prefix, state) in zip(token_prefixes, states.tolist()):
-    print(' '.join(token_prefix), np.round(state, 3), sep='\t')
-print()
-print('sent', 'vector', sep='\t')
-states = model.get_state(index_sents, sent_lens)
-for (token_sent, state) in zip(token_sents, states.tolist()):
-    print(' '.join(token_sent), np.round(state, 3), sep='\t')
-print()
-
 probs = model.predict(index_sents, sent_lens)
 print('sent', 'sentiment', sep='\t')
 for (token_sent, prob) in zip(token_sents, probs.tolist()):

@@ -16,7 +16,7 @@ sent_lens = [
         3,
         4,
         4,
-    ] #Alternatively, you can replace this list with [ len(sent) for sent in tokens ]
+    ]
 sentiments = [
         [ 1 ],
         [ 0 ],
@@ -37,36 +37,6 @@ index_prefixes = [ [ token2index[token] for token in prefix ] + [ 0 for _ in ran
 
 ###################################
 
-class Cell(tf.nn.rnn_cell.RNNCell):
-
-    def __init__(self, embed_size, state_size, init_stddev):
-        super().__init__()
-        self.W = None
-        self.b = None
-        self._embed_size = embed_size
-        self._state_size = state_size
-        self._init_stddev = init_stddev
-
-    @property
-    def state_size(self):
-        return self._state_size
-
-    @property
-    def output_size(self):
-        return self._state_size
-
-    def build(self, inputs_shape):
-        self.W = self.add_variable('W', [self._state_size+self._embed_size, self._state_size], tf.float32, tf.random_normal_initializer(stddev=self._init_stddev))
-        self.b = self.add_variable('b', [self._state_size], tf.float32, tf.zeros_initializer())
-        self.built = True
-        
-    def call(self, x, curr_state):
-        layer_input = tf.concat([ curr_state, x ], axis=1)
-        new_state = tf.tanh(tf.matmul(layer_input, self.W) + self.b)
-        return (new_state, new_state) #Return the state as both output and state.
-
-###################################
-
 class Model(object):
 
     def __init__(self, vocab_size):
@@ -81,6 +51,7 @@ class Model(object):
             self.targets   = tf.placeholder(tf.float32, [None, 1], 'targets')
 
             self.params = []
+            self.rnn_initialisers = []
 
             batch_size = tf.shape(self.sents)[0]
             
@@ -90,20 +61,38 @@ class Model(object):
 
                 embedded = tf.nn.embedding_lookup(self.embedding_matrix, self.sents)
 
-            with tf.variable_scope('hidden'):
-                init_state = tf.get_variable('init_state', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
-                batch_init = tf.tile(tf.reshape(init_state, [1, state_size]), [batch_size, 1])
+            with tf.variable_scope('hidden1'):
+                init_state1 = tf.get_variable('init_state1', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+                batch_init1 = tf.tile(tf.reshape(init_state1, [1, state_size]), [batch_size, 1])
                 
-                cell = Cell(embed_size, state_size, init_stddev)
-                (_, self.states) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init) #Pass sentence lengths here.
-                self.params.extend([ cell.W, cell.b ])
+                cell = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+                (self.outputs1, _) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init1) #Pass the RNN outputs to the next layer instead of the RNN state.
+                [ W, b ] = cell.weights
+                self.rnn_initialisers.extend([
+                        tf.assign(W, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                        tf.assign(b, tf.zeros([state_size]))
+                    ])
+                self.params.extend([ W, b ])
 
+            with tf.variable_scope('hidden2'):
+                init_state2 = tf.get_variable('init_state2', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
+                batch_init2 = tf.tile(tf.reshape(init_state1, [1, state_size]), [batch_size, 1])
+                
+                cell = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
+                (_, self.states2) = tf.nn.dynamic_rnn(cell, self.outputs1, sequence_length=self.sent_lens, initial_state=batch_init2) #Go through the previous RNN's outputs instead of the input words.
+                [ W, b ] = cell.weights
+                self.rnn_initialisers.extend([
+                        tf.assign(W, tf.random_normal([state_size+embed_size, state_size], stddev=init_stddev)),
+                        tf.assign(b, tf.zeros([state_size]))
+                    ])
+                self.params.extend([ W, b ])
+                
             with tf.variable_scope('output'):
                 W = tf.get_variable('W', [state_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
                 self.params.extend([ W, b ])
                 
-                logits = tf.matmul(self.states, W) + b
+                logits = tf.matmul(self.states2, W) + b
                 self.probs = tf.sigmoid(logits)
             
             self.error = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=self.targets, logits=logits))
@@ -117,7 +106,8 @@ class Model(object):
             self.sess = tf.Session()
     
     def initialise(self):
-        return self.sess.run([ self.init ], { })
+        self.sess.run([ self.init ], { })
+        self.sess.run(self.rnn_initialisers, { })
     
     def close(self):
         self.sess.close()
@@ -135,7 +125,7 @@ class Model(object):
         return self.sess.run([ self.probs ], { self.sents: sents, self.sent_lens: sent_lens })[0]
     
     def get_state(self, sents, sent_lens):
-        return self.sess.run([ self.states ], { self.sents: sents, self.sent_lens: sent_lens })[0]
+        return self.sess.run([ self.states2 ], { self.sents: sents, self.sent_lens: sent_lens })[0]
 
 ###################################
 
