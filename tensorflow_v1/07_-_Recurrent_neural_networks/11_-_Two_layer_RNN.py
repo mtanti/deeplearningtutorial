@@ -43,7 +43,7 @@ class Model(object):
         init_stddev = 1e-1
         embed_size = 2
         state_size = 2
-        
+
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.sents     = tf.placeholder(tf.int32, [None, None], 'sents')
@@ -54,7 +54,7 @@ class Model(object):
             self.rnn_initialisers = []
 
             batch_size = tf.shape(self.sents)[0]
-            
+
             with tf.variable_scope('embeddings'):
                 self.embedding_matrix = tf.get_variable('embedding_matrix', [ vocab_size, embed_size ], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 self.params.extend([ self.embedding_matrix ])
@@ -64,7 +64,8 @@ class Model(object):
             with tf.variable_scope('hidden1'):
                 init_state1 = tf.get_variable('init_state1', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 batch_init1 = tf.tile(tf.reshape(init_state1, [1, state_size]), [batch_size, 1])
-                
+                self.params.extend([ init_state1 ])
+
                 cell = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
                 (self.outputs1, _) = tf.nn.dynamic_rnn(cell, embedded, sequence_length=self.sent_lens, initial_state=batch_init1) #Pass the RNN outputs to the next layer instead of the RNN state.
                 [ W, b ] = cell.weights
@@ -77,7 +78,8 @@ class Model(object):
             with tf.variable_scope('hidden2'):
                 init_state2 = tf.get_variable('init_state2', [state_size], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 batch_init2 = tf.tile(tf.reshape(init_state1, [1, state_size]), [batch_size, 1])
-                
+                self.params.extend([ init_state2 ])
+
                 cell = tf.contrib.rnn.BasicRNNCell(2, tf.tanh)
                 (_, self.states2) = tf.nn.dynamic_rnn(cell, self.outputs1, sequence_length=self.sent_lens, initial_state=batch_init2) #Go through the previous RNN's outputs instead of the input words.
                 [ W, b ] = cell.weights
@@ -86,44 +88,44 @@ class Model(object):
                         tf.assign(b, tf.zeros([state_size]))
                     ])
                 self.params.extend([ W, b ])
-                
+
             with tf.variable_scope('output'):
                 W = tf.get_variable('W', [state_size, 1], tf.float32, tf.random_normal_initializer(stddev=init_stddev))
                 b = tf.get_variable('b', [1], tf.float32, tf.zeros_initializer())
                 self.params.extend([ W, b ])
-                
+
                 logits = tf.matmul(self.states2, W) + b
                 self.probs = tf.sigmoid(logits)
-            
+
             self.error = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=self.targets, logits=logits))
-            
+
             self.optimiser_step = tf.train.AdamOptimizer().minimize(self.error)
-        
+
             self.init = tf.global_variables_initializer()
-            
+
             self.graph.finalize()
 
             self.sess = tf.Session()
-    
+
     def initialise(self):
         self.sess.run([ self.init ], { })
         self.sess.run(self.rnn_initialisers, { })
-    
+
     def close(self):
         self.sess.close()
-    
+
     def optimisation_step(self, sents, sent_lens, targets):
         return self.sess.run([ self.optimiser_step ], { self.sents: sents, self.sent_lens: sent_lens, self.targets: targets })
-    
+
     def get_params(self):
         return self.sess.run(self.params, { })
-    
+
     def get_error(self, sents, sent_lens, targets):
         return self.sess.run([ self.error ], { self.sents: sents, self.sent_lens: sent_lens, self.targets: targets })[0]
-    
+
     def predict(self, sents, sent_lens):
         return self.sess.run([ self.probs ], { self.sents: sents, self.sent_lens: sent_lens })[0]
-    
+
     def get_state(self, sents, sent_lens):
         return self.sess.run([ self.states2 ], { self.sents: sents, self.sent_lens: sent_lens })[0]
 
@@ -183,7 +185,7 @@ print('epoch', 'train error', sep='\t')
 for epoch in range(1, max_epochs+1):
     train_error = model.get_error(index_sents, sent_lens, sentiments)
     train_errors.append(train_error)
-    
+
     if epoch%100 == 0:
         print(epoch, train_error, sep='\t')
 
@@ -199,7 +201,7 @@ for epoch in range(1, max_epochs+1):
         train_error_plot.set_data(np.arange(len(train_errors)), train_errors)
         plt.draw()
         fig.canvas.flush_events()
-    
+
     model.optimisation_step(index_sents, sent_lens, sentiments)
 
 print()
@@ -218,5 +220,5 @@ probs = model.predict(index_sents, sent_lens)
 print('sent', 'sentiment', sep='\t')
 for (token_sent, prob) in zip(token_sents, probs.tolist()):
     print(' '.join(token_sent), np.round(prob[0], 3), sep='\t')
-    
+
 model.close()
